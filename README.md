@@ -15,7 +15,7 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Use Python 3.12 for local and deployment compatibility.
+Use Python 3.12.
 
 Fill `.env` with SeaTalk, Google, and Supabase credentials.
 
@@ -61,5 +61,5 @@ Default export ranges:
 ## 5. Deploy
 
 - Render config: `render.yaml` (native Python runtime)
-- Runtime pin: `runtime.txt` (`3.12.9`)
+- Python runtime pin: `.python-version` + `PYTHON_VERSION=3.12.9`
 - Cloudflare + Render guide: `docs/deployment_cloudflare_render.md`

@@ -3,7 +3,7 @@ services:
     name: seatalk-workflow-server
     runtime: python
     plan: starter
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 12), 'Render must use Python 3.12.x. Set PYTHON_VERSION=3.12.9 and clear build cache.'" && pip install --upgrade pip && pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
