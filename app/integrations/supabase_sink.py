@@ -13,6 +13,8 @@ class SupabaseSink:
     def __init__(self, settings: Settings) -> None:
         self._enabled = bool(settings.supabase_url and settings.supabase_service_role_key)
         self._table = settings.supabase_stuckup_table
+        self._state_table = settings.supabase_stuckup_state_table
+        self._state_key = settings.supabase_stuckup_state_key
         self._client: Client | None = None
 
         if self._enabled:
@@ -48,3 +50,37 @@ class SupabaseSink:
         except Exception as exc:
             logger.exception("failed to fetch rows from supabase")
             return SinkResult("supabase", "error", str(exc)), []
+
+    def get_reference_fingerprint(self) -> tuple[SinkResult, str | None]:
+        if not self.enabled or not self._client:
+            return SinkResult("supabase_state", "skipped", "not configured"), None
+        try:
+            data = (
+                self._client.table(self._state_table)
+                .select("value")
+                .eq("key", self._state_key)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+            if not data:
+                return SinkResult("supabase_state", "ok", "state not found"), None
+            value = data[0].get("value")
+            return SinkResult("supabase_state", "ok", "state loaded"), str(value) if value else None
+        except Exception as exc:
+            logger.exception("failed to load stuckup state from supabase")
+            return SinkResult("supabase_state", "error", str(exc)), None
+
+    def set_reference_fingerprint(self, fingerprint: str) -> SinkResult:
+        if not self.enabled or not self._client:
+            return SinkResult("supabase_state", "skipped", "not configured")
+        try:
+            self._client.table(self._state_table).upsert(
+                [{"key": self._state_key, "value": fingerprint}],
+                on_conflict="key",
+            ).execute()
+            return SinkResult("supabase_state", "ok", "state saved")
+        except Exception as exc:
+            logger.exception("failed to save stuckup state to supabase")
+            return SinkResult("supabase_state", "error", str(exc))

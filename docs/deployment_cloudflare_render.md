@@ -79,6 +79,21 @@ After saving, SeaTalk sends verification event. Your app must respond quickly.
    - `stuckup reference row changed, triggering sync`
    - `stuckup auto-sync result: status=ok ...`
 
+## 8.1 Supabase state table (required for stable auto-trigger)
+
+Create a state table so row fingerprint persists across Render restarts:
+
+```sql
+create table if not exists stuckup_sync_state (
+  key text primary key,
+  value text not null
+);
+```
+
+Expected env:
+- `SUPABASE_STUCKUP_STATE_TABLE=stuckup_sync_state`
+- `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
+
 ## 9. Free-Tier Notes
 
 1. Cloudflare Free is sufficient for DNS/proxy/basic WAF setup.

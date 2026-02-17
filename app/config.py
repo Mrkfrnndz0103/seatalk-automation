@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = Field(default="", alias="SUPABASE_SERVICE_ROLE_KEY")
     supabase_stuckup_table: str = Field(default="stuckup_shipments", alias="SUPABASE_STUCKUP_TABLE")
     supabase_stuckup_conflict_column: str = Field(default="shipment_id", alias="SUPABASE_STUCKUP_CONFLICT_COLUMN")
+    supabase_stuckup_state_table: str = Field(default="stuckup_sync_state", alias="SUPABASE_STUCKUP_STATE_TABLE")
+    supabase_stuckup_state_key: str = Field(default="reference_row_fingerprint", alias="SUPABASE_STUCKUP_STATE_KEY")
 
     stuckup_raw_backup_path: Path = Field(default=Path("data/stuckup/raw_full.jsonl"), alias="STUCKUP_RAW_BACKUP_PATH")
     stuckup_auto_sync_enabled: bool = Field(default=True, alias="STUCKUP_AUTO_SYNC_ENABLED")

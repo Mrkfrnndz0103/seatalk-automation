@@ -36,3 +36,7 @@ services:
         value: stuckup_shipments
       - key: SUPABASE_STUCKUP_CONFLICT_COLUMN
         value: shipment_id
+      - key: SUPABASE_STUCKUP_STATE_TABLE
+        value: stuckup_sync_state
+      - key: SUPABASE_STUCKUP_STATE_KEY
+        value: reference_row_fingerprint

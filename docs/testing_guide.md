@@ -27,6 +27,7 @@ python -m pytest -q tests/test_google_sheets_range.py
 
 ## 4. What is covered
 
+
 - `tests/test_api_endpoints.py`
   - `/health` and `/uptime-ping` responses
   - callback verification success with valid signature

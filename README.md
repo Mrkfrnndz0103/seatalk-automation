@@ -42,7 +42,13 @@ Key settings:
 - `STUCKUP_AUTO_SYNC_ENABLED=true`
 - `STUCKUP_POLL_INTERVAL_SECONDS=60`
 - `STUCKUP_REFERENCE_ROW=2`
-- `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt`
+- `SUPABASE_STUCKUP_STATE_TABLE=stuckup_sync_state`
+- `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
+- `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt` (fallback only)
+
+State persistence:
+- Fingerprint is stored in Supabase so restarts do not cause unexpected syncs.
+- Local state file is used only as fallback if Supabase state read/write fails.
 
 Notes:
 - Manual `/stuckup sync` is disabled.

@@ -26,6 +26,10 @@ def test_health_and_uptime(monkeypatch) -> None:
     main = _load_main(monkeypatch)
     client = TestClient(main.app)
 
+    r0 = client.get("/")
+    assert r0.status_code == 200
+    assert r0.json() == {"status": "ok"}
+
     r1 = client.get("/health")
     assert r1.status_code == 200
     assert r1.json() == {"status": "ok"}
