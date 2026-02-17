@@ -17,6 +17,8 @@ Copy-Item .env.example .env
 
 Use Python 3.12.
 
+Project timezone: `APP_TIMEZONE=Asia/Manila` (all generated sync timestamps use this timezone).
+
 Fill `.env` with SeaTalk, Google, and Supabase credentials.
 
 ## 2. Run

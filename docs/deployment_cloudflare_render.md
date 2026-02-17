@@ -137,3 +137,8 @@ See: `docs/cloudflare_tools_matrix.md`
 - Column B: `status` (`Updated` / `no update`)
 - Latest sync log is always row 2; previous logs are shifted to row 3 and below.
 - Exported data table is written separately starting from column C (`C1` header row).
+
+
+## 14. Timezone
+
+Set APP_TIMEZONE=Asia/Manila so sync timestamps in logs/sheets use Manila time.

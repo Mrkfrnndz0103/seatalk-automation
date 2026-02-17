@@ -3,12 +3,13 @@ import hashlib
 import json
 import logging
 import re
-from datetime import datetime, timezone
+import time
 from pathlib import Path
 
 from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
+from app.time_utils import format_local_timestamp
 from app.workflows.stuckup.service import StuckupService
 
 logger = logging.getLogger(__name__)
@@ -86,12 +87,12 @@ class StuckupMonitor:
 
     async def _check_scheduled_sync(self) -> None:
         interval = max(30, self._settings.stuckup_scheduled_sync_interval_seconds)
-        now_ts = datetime.now(timezone.utc).timestamp()
+        now_ts = time.time()
         if self._last_scheduled_sync_ts is not None and (now_ts - self._last_scheduled_sync_ts) < interval:
             return
 
         self._last_scheduled_sync_ts = now_ts
-        self._last_status["last_scheduled_sync_at_utc"] = datetime.now(timezone.utc).isoformat()
+        self._last_status["last_scheduled_sync_at_utc"] = format_local_timestamp(self._settings)
         logger.info("stuckup scheduled sync triggered")
         result = self._service.sync_source_sheet_to_supabase()
         self._record_sync_result(result.status, result.message, result.source_rows, result.upserted_rows, result.exported_rows, result.exported_columns)
@@ -105,7 +106,7 @@ class StuckupMonitor:
         )
 
     async def _check_reference_row_and_sync(self) -> None:
-        self._last_status["last_check_at_utc"] = datetime.now(timezone.utc).isoformat()
+        self._last_status["last_check_at_utc"] = format_local_timestamp(self._settings)
         row = self._settings.stuckup_reference_row
         reference_range = self._build_reference_row_range(row)
         values = self._sheets.read_values(
@@ -130,7 +131,7 @@ class StuckupMonitor:
             return
 
         logger.info("stuckup reference row changed, triggering sync")
-        self._last_status["last_change_detected_at_utc"] = datetime.now(timezone.utc).isoformat()
+        self._last_status["last_change_detected_at_utc"] = format_local_timestamp(self._settings)
         result = self._service.sync_source_sheet_to_supabase()
         self._record_sync_result(result.status, result.message, result.source_rows, result.upserted_rows, result.exported_rows, result.exported_columns)
         logger.info(

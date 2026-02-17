@@ -1,12 +1,12 @@
 import json
 import re
 import hashlib
-from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
+from app.time_utils import format_local_timestamp
 from app.workflows.stuckup.models import StuckupSyncResult
 
 
@@ -100,7 +100,7 @@ class StuckupService:
                 worksheet_name=self._settings.stuckup_log_worksheet_name,
                 cell_range="A2:B1000",
             )
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = format_local_timestamp(self._settings)
             new_log_rows = [[timestamp, sync_status]] + existing_log_rows
 
             self._google_sheets.clear_range(
@@ -119,12 +119,12 @@ class StuckupService:
             self._google_sheets.clear_range(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
-                cell_range="C:ZZ",
+                cell_range="A:P",
             )
             self._google_sheets.update_values(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
-                start_cell="C1",
+                start_cell="A1",
                 values=export_values,
             )
         except Exception as exc:

@@ -60,6 +60,7 @@ class Settings(BaseSettings):
 
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
+    app_timezone: str = Field(default="Asia/Manila", alias="APP_TIMEZONE")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
 
