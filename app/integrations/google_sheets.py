@@ -27,7 +27,7 @@ class GoogleSheetsClient:
         service = self._build_service()
         response = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range=f"{worksheet_name}!{cell_range}",
+            range=self._sheet_range(worksheet_name, cell_range),
         ).execute()
         values: list[list[Any]] = response.get("values", [])
         return [[str(cell).strip() for cell in row] for row in values]
@@ -36,7 +36,7 @@ class GoogleSheetsClient:
         service = self._build_service()
         service.spreadsheets().values().clear(
             spreadsheetId=spreadsheet_id,
-            range=f"{worksheet_name}!A:ZZ",
+            range=self._sheet_range(worksheet_name, "A:ZZ"),
             body={},
         ).execute()
         if not values:
@@ -44,7 +44,13 @@ class GoogleSheetsClient:
 
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=f"{worksheet_name}!A1",
+            range=self._sheet_range(worksheet_name, "A1"),
             valueInputOption="USER_ENTERED",
             body={"values": values},
         ).execute()
+
+    @staticmethod
+    def _sheet_range(worksheet_name: str, cell_range: str) -> str:
+        # Always quote sheet names to support spaces/special chars.
+        escaped = worksheet_name.replace("'", "''")
+        return f"'{escaped}'!{cell_range}"

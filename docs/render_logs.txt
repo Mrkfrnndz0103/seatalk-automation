@@ -1,100 +1,18 @@
-2026-02-17T02:44:57.232304247Z INFO:     Started server process [56]
-2026-02-17T02:44:57.232328307Z INFO:     Waiting for application startup.
-2026-02-17T02:44:57.232512901Z INFO:     Application startup complete.
-2026-02-17T02:44:57.232835248Z INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
-2026-02-17T02:44:57.577742941Z INFO:     127.0.0.1:58312 - "HEAD / HTTP/1.1" 404 Not Found
-2026-02-17T02:45:08.17184869Z ==> Your service is live 🎉
-2026-02-17T02:45:08.301795116Z INFO:     35.197.118.178:0 - "GET / HTTP/1.1" 404 Not Found
-2026-02-17T02:45:08.897438413Z ==> 
-2026-02-17T02:45:08.902539654Z ==> ///////////////////////////////////////////////////////////
-2026-02-17T02:45:08.90656062Z ==> 
-2026-02-17T02:45:08.911164388Z ==> Available at your primary URL https://seatalk-workflow-server.onrender.com
-2026-02-17T02:45:08.915997317Z ==> 
-2026-02-17T02:45:08.920550668Z ==> ///////////////////////////////////////////////////////////
-2026-02-17T02:46:06.768780089Z INFO:     Shutting down
-2026-02-17T02:46:06.869247405Z INFO:     Waiting for application shutdown.
-2026-02-17T02:46:06.869355317Z INFO:     Application shutdown complete.
-2026-02-17T02:46:06.869411688Z INFO:     Finished server process [57]
-2026-02-17T02:50:02.447661939Z ==> Detected service running on port 10000
-2026-02-17T02:50:02.931068226Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-2026-02-17T02:55:01.532407841Z INFO:     124.217.61.78:0 - "GET /health HTTP/1.1" 200 OK
-2026-02-17T02:55:01.880197037Z INFO:     124.217.61.78:0 - "GET /favicon.ico HTTP/1.1" 404 Not Found
-2026-02-17T03:11:04.557901726Z INFO:     Shutting down
-2026-02-17T03:11:04.658403226Z INFO:     Waiting for application shutdown.
-2026-02-17T03:11:04.658517309Z INFO:     Application shutdown complete.
-2026-02-17T03:11:04.658655632Z INFO:     Finished server process [56]
-2026-02-17T03:38:58.413108721Z INFO:     Application startup complete.
-2026-02-17T03:38:58.413430909Z INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
-2026-02-17T03:39:02.53449204Z INFO:     143.92.74.130:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:39:02.623813889Z INFO:     143.92.74.130:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:39:02.627487536Z INFO:     143.92.74.162:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:39:02.711883925Z INFO:     143.92.74.133:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:41:15.993518471Z INFO:     124.217.61.78:0 - "GET /health HTTP/1.1" 200 OK
-2026-02-17T03:41:21.722819589Z INFO:     143.92.74.165:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:42:32.290306625Z 2026-02-17 03:42:32,290 INFO httpx - HTTP Request: POST https://openapi.seatalk.io/auth/app_access_token "HTTP/1.1 200 OK"
-2026-02-17T03:42:32.478092855Z 2026-02-17 03:42:32,477 INFO httpx - HTTP Request: POST https://openapi.seatalk.io/messaging/v2/single_chat "HTTP/1.1 200 OK"
-2026-02-17T03:42:32.479203064Z INFO:     143.92.74.164:0 - "POST /callbacks/seatalk HTTP/1.1" 200 OK
-2026-02-17T03:42:44.680234804Z INFO:     143.92.74.130:0 - "POST /callbacks/seatalk HTTP/1.1" 500 Internal Server Error
-2026-02-17T03:42:44.697268674Z ERROR:    Exception in ASGI application
-2026-02-17T03:42:44.697294495Z Traceback (most recent call last):
-2026-02-17T03:42:44.697299835Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
-2026-02-17T03:42:44.697304285Z     result = await app(  # type: ignore[func-returns-value]
-2026-02-17T03:42:44.697308035Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697311715Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
-2026-02-17T03:42:44.697315435Z     return await self.app(scope, receive, send)
-2026-02-17T03:42:44.697319065Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697322665Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
-2026-02-17T03:42:44.697326336Z     await super().__call__(scope, receive, send)
-2026-02-17T03:42:44.697330106Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/applications.py", line 113, in __call__
-2026-02-17T03:42:44.697333716Z     await self.middleware_stack(scope, receive, send)
-2026-02-17T03:42:44.697337236Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
-2026-02-17T03:42:44.697340846Z     raise exc
-2026-02-17T03:42:44.697345026Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
-2026-02-17T03:42:44.697348736Z     await self.app(scope, receive, _send)
-2026-02-17T03:42:44.697352536Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
-2026-02-17T03:42:44.697356806Z     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-2026-02-17T03:42:44.697360486Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-2026-02-17T03:42:44.697364047Z     raise exc
-2026-02-17T03:42:44.697367797Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
-2026-02-17T03:42:44.697385877Z     await app(scope, receive, sender)
-2026-02-17T03:42:44.697389267Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
-2026-02-17T03:42:44.697391307Z     await self.middleware_stack(scope, receive, send)
-2026-02-17T03:42:44.697393338Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
-2026-02-17T03:42:44.697395418Z     await route.handle(scope, receive, send)
-2026-02-17T03:42:44.697397458Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
-2026-02-17T03:42:44.697399538Z     await self.app(scope, receive, send)
-2026-02-17T03:42:44.697401558Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/routing.py", line 78, in app
-2026-02-17T03:42:44.697403548Z     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-2026-02-17T03:42:44.697405748Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-2026-02-17T03:42:44.697407698Z     raise exc
-2026-02-17T03:42:44.697409728Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
-2026-02-17T03:42:44.697412398Z     await app(scope, receive, sender)
-2026-02-17T03:42:44.697414608Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/starlette/routing.py", line 75, in app
-2026-02-17T03:42:44.697418298Z     response = await f(request)
-2026-02-17T03:42:44.697420548Z                ^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697422728Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 302, in app
-2026-02-17T03:42:44.697424928Z     raw_response = await run_endpoint_function(
-2026-02-17T03:42:44.697427108Z                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697429298Z   File "/opt/render/project/src/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 213, in run_endpoint_function
-2026-02-17T03:42:44.697431599Z     return await dependant.call(**values)
-2026-02-17T03:42:44.697433928Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697436488Z   File "/opt/render/project/src/app/main.py", line 56, in seatalk_callback
-2026-02-17T03:42:44.697439039Z     await _handle_message_from_bot_subscriber(payload)
-2026-02-17T03:42:44.697442389Z   File "/opt/render/project/src/app/main.py", line 101, in _handle_message_from_bot_subscriber
-2026-02-17T03:42:44.697445059Z     result = workflow_router.route(context)
-2026-02-17T03:42:44.697447459Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697450279Z   File "/opt/render/project/src/app/workflows/router.py", line 20, in route
-2026-02-17T03:42:44.697452829Z     result = workflow.handle(context)
-2026-02-17T03:42:44.697455309Z              ^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697458089Z   File "/opt/render/project/src/app/workflows/stuckup/handler.py", line 29, in handle
-2026-02-17T03:42:44.697460439Z     result = self._service.sync_source_sheet_to_supabase()
-2026-02-17T03:42:44.697462559Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697464629Z   File "/opt/render/project/src/app/workflows/stuckup/service.py", line 26, in sync_source_sheet_to_supabase
-2026-02-17T03:42:44.697466689Z     values = self._google_sheets.read_values(
-2026-02-17T03:42:44.69746874Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.69748901Z   File "/opt/render/project/src/app/integrations/google_sheets.py", line 27, in read_values
-2026-02-17T03:42:44.6974918Z     service = self._build_service()
-2026-02-17T03:42:44.69750552Z               ^^^^^^^^^^^^^^^^^^^^^
-2026-02-17T03:42:44.697508061Z   File "/opt/render/project/src/app/integrations/google_sheets.py", line 19, in _build_service
-2026-02-17T03:42:44.697510141Z     raise FileNotFoundError("google service account file not found")
-2026-02-17T03:42:44.697512301Z FileNotFoundError: google service account file not found
+NFO:     124.217.61.78:0 - "GET / HTTP/1.1" 404 Not Found
+INFO:     124.217.61.78:0 - "POST /callbacks/seatalk HTTP/1.1" 401 Unauthorized
+2026-02-17 04:53:43,757 ERROR app.workflows.stuckup.monitor - stuckup monitor iteration failed
+Traceback (most recent call last):
+  File "/opt/render/project/src/app/workflows/stuckup/monitor.py", line 49, in _run_loop
+    await self._check_reference_row_and_sync()
+  File "/opt/render/project/src/app/workflows/stuckup/monitor.py", line 63, in _check_reference_row_and_sync
+    values = self._sheets.read_values(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/app/integrations/google_sheets.py", line 31, in read_values
+    ).execute()
+      ^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.12/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
+    return wrapped(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.12/site-packages/googleapiclient/http.py", line 938, in execute
+    raise HttpError(resp, content, uri=self.uri)
+googleapiclient.errors.HttpError: <HttpError 400 when requesting https://sheets.googleapis.com/v4/spreadsheets/1u1PyicYuGWWlAvxZ2iNnGAdAAC4Pksy8x-SH8U56HYM/values/Stuck%20Report%20Data%20Puller%20-%20SOC%205%20Raw%20Data%21A2%3AZZ2?alt=json returned "Unable to parse range: Stuck Report Data Puller - SOC 5 Raw Data!A2:ZZ2". Details: "Unable to parse range: Stuck Report Data Puller - SOC 5 Raw Data!A2:ZZ2">
