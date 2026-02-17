@@ -75,9 +75,9 @@ After saving, SeaTalk sends verification event. Your app must respond quickly.
    - `https://bot.yourdomain.com/health`
 2. Confirm HTTP 200 response.
 3. Confirm SeaTalk callback verification passes.
-4. Send command in SeaTalk:
-   - `/stuckup sync`
-5. Check Render logs for incoming event and workflow execution.
+4. Trigger a source-sheet row 2 change, then check Render logs for:
+   - `stuckup reference row changed, triggering sync`
+   - `stuckup auto-sync result: status=ok ...`
 
 ## 9. Free-Tier Notes
 

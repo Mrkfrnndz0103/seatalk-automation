@@ -19,13 +19,25 @@ from app.seatalk.client import SeaTalkClient
 from app.seatalk.signature import is_valid_signature
 from app.workflows.base import WorkflowContext
 from app.workflows.router import WorkflowRouter
+from app.workflows.stuckup.monitor import StuckupMonitor
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 seatalk_client = SeaTalkClient(settings)
 workflow_router = WorkflowRouter(settings)
+stuckup_monitor = StuckupMonitor(settings)
 
 app = FastAPI(title="SeaTalk Workflow Automation Server", version="0.1.0")
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    stuckup_monitor.start()
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    await stuckup_monitor.stop()
 
 
 @app.get("/health")
@@ -118,9 +130,7 @@ async def _handle_user_enter_chatroom_with_bot(payload: CallbackEnvelope) -> Non
         employee_code=event.employee_code,
         content=(
             "Bot is online.\n"
-            "Available commands:\n"
-            "- `/stuckup sync`\n"
-            "- `/stuckup help`"
+            "Stuckup workflow is auto-triggered when source sheet reference row changes."
         ),
     )
 

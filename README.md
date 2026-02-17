@@ -1,7 +1,7 @@
 # SeaTalk Workflow Automation Server
 
 Python FastAPI server for SeaTalk bot callback automation with workflow folders:
-- `stuckup` (implemented)
+- `stuckup` (implemented, auto-triggered)
 - `backlogs` (scaffolded)
 - `shortlanded` (scaffolded)
 - `lh_request` (scaffolded)
@@ -30,35 +30,31 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 Configure in SeaTalk Open Platform:
 - Callback URL: `https://<your-domain>/callbacks/seatalk`
 
-## 4. Workflow Commands
+## 4. Stuckup Workflow (Auto)
 
-### Stuckup
+Trigger behavior:
+1. Bot monitors source sheet reference row (`STUCKUP_REFERENCE_ROW`, default `2`).
+2. If row value changes, bot runs sync automatically:
+   - Source sheet (full columns) -> Supabase upsert
+   - Supabase -> target sheet export columns (`STUCKUP_EXPORT_RANGES`)
 
-```text
-/stuckup sync
-```
+Key settings:
+- `STUCKUP_AUTO_SYNC_ENABLED=true`
+- `STUCKUP_POLL_INTERVAL_SECONDS=60`
+- `STUCKUP_REFERENCE_ROW=2`
+- `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt`
 
-Pipeline:
-1. Read source sheet range `STUCKUP_SOURCE_RANGE` (default `A1:AL`, 38 cols).
-2. Upsert all source columns into Supabase (`SUPABASE_STUCKUP_TABLE`).
-3. Read back data from Supabase.
-4. Export selected columns to target sheet based on `STUCKUP_EXPORT_RANGES`.
+Notes:
+- Manual `/stuckup sync` is disabled.
+- `/stuckup help` shows auto-sync info.
 
-Default export ranges:
-- `B1:E`
-- `I1:J`
-- `M`
-- `Q1:U`
-- `Y1:AA`
-- `AH1:AK`
-
-### Others (scaffolded)
+## 5. Other Workflows (Scaffolded)
 
 - `/backlogs`
 - `/shortlanded`
 - `/lh_request`
 
-## 5. Deploy
+## 6. Deploy
 
 - Render config: `render.yaml` (native Python runtime)
 - Python runtime pin: `.python-version` + `PYTHON_VERSION=3.12.9`

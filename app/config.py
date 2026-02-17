@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     supabase_stuckup_conflict_column: str = Field(default="shipment_id", alias="SUPABASE_STUCKUP_CONFLICT_COLUMN")
 
     stuckup_raw_backup_path: Path = Field(default=Path("data/stuckup/raw_full.jsonl"), alias="STUCKUP_RAW_BACKUP_PATH")
+    stuckup_auto_sync_enabled: bool = Field(default=True, alias="STUCKUP_AUTO_SYNC_ENABLED")
+    stuckup_poll_interval_seconds: int = Field(default=60, alias="STUCKUP_POLL_INTERVAL_SECONDS")
+    stuckup_reference_row: int = Field(default=2, alias="STUCKUP_REFERENCE_ROW")
+    stuckup_state_path: Path = Field(default=Path("data/stuckup/reference_row_state.txt"), alias="STUCKUP_STATE_PATH")
 
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")

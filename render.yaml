@@ -26,6 +26,12 @@ services:
         value: Stuckup
       - key: STUCKUP_EXPORT_RANGES
         value: B1:E,I1:J,M,Q1:U,Y1:AA,AH1:AK
+      - key: STUCKUP_AUTO_SYNC_ENABLED
+        value: true
+      - key: STUCKUP_POLL_INTERVAL_SECONDS
+        value: 60
+      - key: STUCKUP_REFERENCE_ROW
+        value: 2
       - key: SUPABASE_STUCKUP_TABLE
         value: stuckup_shipments
       - key: SUPABASE_STUCKUP_CONFLICT_COLUMN
