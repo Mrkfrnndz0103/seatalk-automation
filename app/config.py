@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     stuckup_target_spreadsheet_id: str = Field(default="", alias="STUCKUP_TARGET_SPREADSHEET_ID")
     stuckup_target_worksheet_name: str = Field(default="Stuckup", alias="STUCKUP_TARGET_WORKSHEET_NAME")
+    stuckup_log_worksheet_name: str = Field(default="config", alias="STUCKUP_LOG_WORKSHEET_NAME")
     stuckup_filter_status_values: str = Field(
         default=DEFAULT_STUCKUP_FILTER_STATUS_VALUES,
         alias="STUCKUP_FILTER_STATUS_VALUES",

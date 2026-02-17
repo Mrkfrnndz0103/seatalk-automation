@@ -97,7 +97,7 @@ class StuckupService:
             # 1) Write sync log in columns A:B, latest at row 2
             existing_log_rows = self._google_sheets.read_values(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                worksheet_name=self._settings.stuckup_log_worksheet_name,
                 cell_range="A2:B1000",
             )
             timestamp = datetime.now(timezone.utc).isoformat()
@@ -105,12 +105,12 @@ class StuckupService:
 
             self._google_sheets.clear_range(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                worksheet_name=self._settings.stuckup_log_worksheet_name,
                 cell_range="A:B",
             )
             self._google_sheets.update_values(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                worksheet_name=self._settings.stuckup_log_worksheet_name,
                 start_cell="A1",
                 values=[["run_time", "status"]] + new_log_rows,
             )
