@@ -78,6 +78,9 @@ After saving, SeaTalk sends verification event. Your app must respond quickly.
 4. Trigger a source-sheet row 2 change, then check Render logs for:
    - `stuckup reference row changed, triggering sync`
    - `stuckup auto-sync result: status=ok ...`
+5. For formula-driven sources, use scheduled mode and check logs for:
+   - `stuckup scheduled sync triggered`
+   - `stuckup scheduled sync result: status=ok ...`
 
 ## 8.1 Supabase state table (required for stable auto-trigger)
 
@@ -127,3 +130,10 @@ Run SQL from: `docs/supabase_stuckup_schema.sql`
 ## 12. Cloudflare tools reference
 
 See: `docs/cloudflare_tools_matrix.md`
+
+## 13. Destination sheet log columns
+
+- Column A: `run_time`
+- Column B: `status` (`Updated` / `no update`)
+- Latest sync log is always row 2; previous logs are shifted to row 3 and below.
+- Exported data table is written separately starting from column C (`C1` header row).

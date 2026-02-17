@@ -1,5 +1,7 @@
 import json
 import re
+import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import Settings
@@ -47,16 +49,23 @@ class StuckupService:
                 source_records.append(record)
 
         self._write_backup(source_records)
+        data_hash = hashlib.sha256(
+            json.dumps(source_records, ensure_ascii=True, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        _, previous_hash = self._supabase.get_data_hash()
+        is_updated = previous_hash != data_hash
+        sync_status = "Updated" if is_updated else "no update"
 
-        upsert_result = self._supabase.upsert_rows(
-            rows=source_records,
-            conflict_column=self._settings.supabase_stuckup_conflict_column,
-        )
-        if upsert_result.status != "ok":
-            return self._error(
-                f"supabase upsert failed: {upsert_result.message}",
-                source_rows=len(source_records),
+        if is_updated:
+            upsert_result = self._supabase.upsert_rows(
+                rows=source_records,
+                conflict_column=self._settings.supabase_stuckup_conflict_column,
             )
+            if upsert_result.status != "ok":
+                return self._error(
+                    f"supabase upsert failed: {upsert_result.message}",
+                    source_rows=len(source_records),
+                )
 
         source_to_normalized = {source_headers[i]: normalized_headers[i] for i in range(len(source_headers))}
         requested_export_headers = [v.strip() for v in self._settings.stuckup_export_columns.split(",") if v.strip()]
@@ -77,7 +86,7 @@ class StuckupService:
             return self._error(
                 f"supabase fetch failed: {fetch_result.message}",
                 source_rows=len(source_records),
-                upserted_rows=len(source_records),
+                upserted_rows=len(source_records) if is_updated else 0,
             )
 
         export_values: list[list[str]] = [selected_source_headers]
@@ -85,23 +94,53 @@ class StuckupService:
             export_values.append([str(row.get(column, "")) for column in selected_normalized_headers])
 
         try:
-            self._google_sheets.overwrite_values(
+            # 1) Write sync log in columns A:B, latest at row 2
+            existing_log_rows = self._google_sheets.read_values(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
+                cell_range="A2:B1000",
+            )
+            timestamp = datetime.now(timezone.utc).isoformat()
+            new_log_rows = [[timestamp, sync_status]] + existing_log_rows
+
+            self._google_sheets.clear_range(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                cell_range="A:B",
+            )
+            self._google_sheets.update_values(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                start_cell="A1",
+                values=[["run_time", "status"]] + new_log_rows,
+            )
+
+            # 2) Write data table in columns C onward
+            self._google_sheets.clear_range(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                cell_range="C:ZZ",
+            )
+            self._google_sheets.update_values(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                start_cell="C1",
                 values=export_values,
             )
         except Exception as exc:
             return self._error(
                 f"google target write failed: {exc}",
                 source_rows=len(source_records),
-                upserted_rows=len(source_records),
+                upserted_rows=len(source_records) if is_updated else 0,
             )
+
+        self._supabase.set_data_hash(data_hash)
 
         return StuckupSyncResult(
             status="ok",
-            message="source sheet synced to supabase and exported to target sheet",
+            message=f"source sheet synced to supabase and exported to target sheet ({sync_status})",
             source_rows=len(source_records),
-            upserted_rows=len(source_records),
+            upserted_rows=len(source_records) if is_updated else 0,
             exported_rows=max(len(export_values) - 1, 0),
             exported_columns=len(selected_source_headers),
         )

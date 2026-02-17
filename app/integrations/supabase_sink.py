@@ -15,6 +15,7 @@ class SupabaseSink:
         self._table = settings.supabase_stuckup_table
         self._state_table = settings.supabase_stuckup_state_table
         self._state_key = settings.supabase_stuckup_state_key
+        self._data_hash_key = settings.supabase_stuckup_data_hash_key
         self._client: Client | None = None
 
         if self._enabled:
@@ -51,14 +52,14 @@ class SupabaseSink:
             logger.exception("failed to fetch rows from supabase")
             return SinkResult("supabase", "error", str(exc)), []
 
-    def get_reference_fingerprint(self) -> tuple[SinkResult, str | None]:
+    def get_state(self, key: str) -> tuple[SinkResult, str | None]:
         if not self.enabled or not self._client:
             return SinkResult("supabase_state", "skipped", "not configured"), None
         try:
             data = (
                 self._client.table(self._state_table)
                 .select("value")
-                .eq("key", self._state_key)
+                .eq("key", key)
                 .limit(1)
                 .execute()
                 .data
@@ -72,15 +73,27 @@ class SupabaseSink:
             logger.exception("failed to load stuckup state from supabase")
             return SinkResult("supabase_state", "error", str(exc)), None
 
-    def set_reference_fingerprint(self, fingerprint: str) -> SinkResult:
+    def set_state(self, key: str, value: str) -> SinkResult:
         if not self.enabled or not self._client:
             return SinkResult("supabase_state", "skipped", "not configured")
         try:
             self._client.table(self._state_table).upsert(
-                [{"key": self._state_key, "value": fingerprint}],
+                [{"key": key, "value": value}],
                 on_conflict="key",
             ).execute()
             return SinkResult("supabase_state", "ok", "state saved")
         except Exception as exc:
             logger.exception("failed to save stuckup state to supabase")
             return SinkResult("supabase_state", "error", str(exc))
+
+    def get_reference_fingerprint(self) -> tuple[SinkResult, str | None]:
+        return self.get_state(self._state_key)
+
+    def set_reference_fingerprint(self, fingerprint: str) -> SinkResult:
+        return self.set_state(self._state_key, fingerprint)
+
+    def get_data_hash(self) -> tuple[SinkResult, str | None]:
+        return self.get_state(self._data_hash_key)
+
+    def set_data_hash(self, data_hash: str) -> SinkResult:
+        return self.set_state(self._data_hash_key, data_hash)

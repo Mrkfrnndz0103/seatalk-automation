@@ -44,10 +44,16 @@ class Settings(BaseSettings):
     supabase_stuckup_conflict_column: str = Field(default="shipment_id", alias="SUPABASE_STUCKUP_CONFLICT_COLUMN")
     supabase_stuckup_state_table: str = Field(default="stuckup_sync_state", alias="SUPABASE_STUCKUP_STATE_TABLE")
     supabase_stuckup_state_key: str = Field(default="reference_row_fingerprint", alias="SUPABASE_STUCKUP_STATE_KEY")
+    supabase_stuckup_data_hash_key: str = Field(default="stuckup_data_hash", alias="SUPABASE_STUCKUP_DATA_HASH_KEY")
 
     stuckup_raw_backup_path: Path = Field(default=Path("data/stuckup/raw_full.jsonl"), alias="STUCKUP_RAW_BACKUP_PATH")
     stuckup_auto_sync_enabled: bool = Field(default=True, alias="STUCKUP_AUTO_SYNC_ENABLED")
     stuckup_poll_interval_seconds: int = Field(default=60, alias="STUCKUP_POLL_INTERVAL_SECONDS")
+    stuckup_sync_mode: str = Field(default="scheduled", alias="STUCKUP_SYNC_MODE")
+    stuckup_scheduled_sync_interval_seconds: int = Field(
+        default=300,
+        alias="STUCKUP_SCHEDULED_SYNC_INTERVAL_SECONDS",
+    )
     stuckup_reference_row: int = Field(default=2, alias="STUCKUP_REFERENCE_ROW")
     stuckup_state_path: Path = Field(default=Path("data/stuckup/reference_row_state.txt"), alias="STUCKUP_STATE_PATH")
 

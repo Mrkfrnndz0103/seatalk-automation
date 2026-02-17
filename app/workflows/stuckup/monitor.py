@@ -24,10 +24,12 @@ class StuckupMonitor:
         self._stop_event = asyncio.Event()
         self._state_path = Path(settings.stuckup_state_path)
         self._state_path.parent.mkdir(parents=True, exist_ok=True)
+        self._last_scheduled_sync_ts: float | None = None
         self._last_status: dict[str, str | int | None] = {
             "monitor": "idle",
             "last_check_at_utc": None,
             "last_change_detected_at_utc": None,
+            "last_scheduled_sync_at_utc": None,
             "last_sync_status": None,
             "last_sync_message": None,
             "last_source_rows": 0,
@@ -66,7 +68,11 @@ class StuckupMonitor:
     async def _run_loop(self) -> None:
         while not self._stop_event.is_set():
             try:
-                await self._check_reference_row_and_sync()
+                mode = self._settings.stuckup_sync_mode.strip().lower()
+                if mode in {"row_change", "both"}:
+                    await self._check_reference_row_and_sync()
+                if mode in {"scheduled", "both"}:
+                    await self._check_scheduled_sync()
             except Exception:
                 logger.exception("stuckup monitor iteration failed")
 
@@ -77,6 +83,26 @@ class StuckupMonitor:
                 )
             except asyncio.TimeoutError:
                 pass
+
+    async def _check_scheduled_sync(self) -> None:
+        interval = max(30, self._settings.stuckup_scheduled_sync_interval_seconds)
+        now_ts = datetime.now(timezone.utc).timestamp()
+        if self._last_scheduled_sync_ts is not None and (now_ts - self._last_scheduled_sync_ts) < interval:
+            return
+
+        self._last_scheduled_sync_ts = now_ts
+        self._last_status["last_scheduled_sync_at_utc"] = datetime.now(timezone.utc).isoformat()
+        logger.info("stuckup scheduled sync triggered")
+        result = self._service.sync_source_sheet_to_supabase()
+        self._record_sync_result(result.status, result.message, result.source_rows, result.upserted_rows, result.exported_rows, result.exported_columns)
+        logger.info(
+            "stuckup scheduled sync result: status=%s message=%s source_rows=%s upserted_rows=%s exported_rows=%s",
+            result.status,
+            result.message,
+            result.source_rows,
+            result.upserted_rows,
+            result.exported_rows,
+        )
 
     async def _check_reference_row_and_sync(self) -> None:
         self._last_status["last_check_at_utc"] = datetime.now(timezone.utc).isoformat()
@@ -106,12 +132,7 @@ class StuckupMonitor:
         logger.info("stuckup reference row changed, triggering sync")
         self._last_status["last_change_detected_at_utc"] = datetime.now(timezone.utc).isoformat()
         result = self._service.sync_source_sheet_to_supabase()
-        self._last_status["last_sync_status"] = result.status
-        self._last_status["last_sync_message"] = result.message
-        self._last_status["last_source_rows"] = result.source_rows
-        self._last_status["last_upserted_rows"] = result.upserted_rows
-        self._last_status["last_exported_rows"] = result.exported_rows
-        self._last_status["last_exported_columns"] = result.exported_columns
+        self._record_sync_result(result.status, result.message, result.source_rows, result.upserted_rows, result.exported_rows, result.exported_columns)
         logger.info(
             "stuckup auto-sync result: status=%s message=%s source_rows=%s upserted_rows=%s exported_rows=%s",
             result.status,
@@ -156,9 +177,27 @@ class StuckupMonitor:
         return {
             "auto_sync_enabled": self._settings.stuckup_auto_sync_enabled,
             "poll_interval_seconds": self._settings.stuckup_poll_interval_seconds,
+            "sync_mode": self._settings.stuckup_sync_mode,
+            "scheduled_sync_interval_seconds": self._settings.stuckup_scheduled_sync_interval_seconds,
             "reference_row": self._settings.stuckup_reference_row,
             "source_worksheet": self._settings.stuckup_source_worksheet_name,
             "source_range": self._settings.stuckup_source_range,
             "target_worksheet": self._settings.stuckup_target_worksheet_name,
             **self._last_status,
         }
+
+    def _record_sync_result(
+        self,
+        status: str,
+        message: str,
+        source_rows: int,
+        upserted_rows: int,
+        exported_rows: int,
+        exported_columns: int,
+    ) -> None:
+        self._last_status["last_sync_status"] = status
+        self._last_status["last_sync_message"] = message
+        self._last_status["last_source_rows"] = source_rows
+        self._last_status["last_upserted_rows"] = upserted_rows
+        self._last_status["last_exported_rows"] = exported_rows
+        self._last_status["last_exported_columns"] = exported_columns

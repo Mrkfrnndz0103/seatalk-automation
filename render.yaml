@@ -32,6 +32,10 @@ services:
         value: true
       - key: STUCKUP_POLL_INTERVAL_SECONDS
         value: 60
+      - key: STUCKUP_SYNC_MODE
+        value: scheduled
+      - key: STUCKUP_SCHEDULED_SYNC_INTERVAL_SECONDS
+        value: 300
       - key: STUCKUP_REFERENCE_ROW
         value: 2
       - key: SUPABASE_STUCKUP_TABLE

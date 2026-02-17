@@ -42,6 +42,7 @@ def test_health_and_uptime(monkeypatch) -> None:
     assert r3.status_code == 200
     body = r3.json()
     assert body["auto_sync_enabled"] is False
+    assert body["sync_mode"] == "scheduled"
     assert body["reference_row"] == 2
 
 

@@ -33,18 +33,23 @@ class GoogleSheetsClient:
         return [[str(cell).strip() for cell in row] for row in values]
 
     def overwrite_values(self, spreadsheet_id: str, worksheet_name: str, values: list[list[str]]) -> None:
+        self.clear_range(spreadsheet_id, worksheet_name, "A:ZZ")
+        if values:
+            self.update_values(spreadsheet_id, worksheet_name, "A1", values)
+
+    def clear_range(self, spreadsheet_id: str, worksheet_name: str, cell_range: str) -> None:
         service = self._build_service()
         service.spreadsheets().values().clear(
             spreadsheetId=spreadsheet_id,
-            range=self._sheet_range(worksheet_name, "A:ZZ"),
+            range=self._sheet_range(worksheet_name, cell_range),
             body={},
         ).execute()
-        if not values:
-            return
 
+    def update_values(self, spreadsheet_id: str, worksheet_name: str, start_cell: str, values: list[list[str]]) -> None:
+        service = self._build_service()
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=self._sheet_range(worksheet_name, "A1"),
+            range=self._sheet_range(worksheet_name, start_cell),
             valueInputOption="USER_ENTERED",
             body={"values": values},
         ).execute()
