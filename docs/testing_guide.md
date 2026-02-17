@@ -29,7 +29,7 @@ python -m pytest -q tests/test_google_sheets_range.py
 
 
 - `tests/test_api_endpoints.py`
-  - `/health` and `/uptime-ping` responses
+  - `/health`, `/uptime-ping`, and `/stuckup/status` responses
   - callback verification success with valid signature
   - callback verification failure with invalid signature
 - `tests/test_stuckup_handler.py`
@@ -45,3 +45,8 @@ python -m pytest -q tests/test_google_sheets_range.py
 - Tests are designed to run offline and do not call live SeaTalk/Google/Supabase APIs.
 - `test_api_endpoints.py` forces `STUCKUP_AUTO_SYNC_ENABLED=false` for isolation.
 - Live end-to-end validation (Render + SeaTalk + Google + Supabase) should still be done separately.
+
+
+## 6. Schema prerequisite
+
+Before live sync tests, apply SQL in docs/supabase_stuckup_schema.sql.

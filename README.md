@@ -25,6 +25,9 @@ Fill `.env` with SeaTalk, Google, and Supabase credentials.
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+Monitoring endpoint:
+- `GET /stuckup/status` (returns current monitor state + last sync result)
+
 ## 3. Callback URL
 
 Configure in SeaTalk Open Platform:
@@ -35,13 +38,42 @@ Configure in SeaTalk Open Platform:
 Trigger behavior:
 1. Bot monitors source sheet reference row (`STUCKUP_REFERENCE_ROW`, default `2`).
 2. If row value changes, bot runs sync automatically:
-   - Source sheet (full columns) -> Supabase upsert
-   - Supabase -> target sheet export columns (`STUCKUP_EXPORT_RANGES`)
+   - Source sheet A:AL (38 columns) -> Supabase upsert
+   - Supabase -> target sheet export columns (`STUCKUP_EXPORT_COLUMNS`)
+
+Source row filter:
+- Only rows where `status_desc` is one of `STUCKUP_FILTER_STATUS_VALUES` are imported.
+- Default values:
+  - `SOC_Packed`
+  - `SOC_Packing`
+  - `SOC_Staging`
+  - `SOC_LHTransported`
+  - `SOC_LHTransporting`
+
+Default destination columns retained:
+- `journey_type`
+- `spx_station_site`
+- `shipment_id`
+- `status_group`
+- `status_desc`
+- `status_timestamp`
+- `ageing_bucket`
+- `hub_dest_station_name`
+- `hub_region`
+- `cluster_name`
+- `fms_last_update_time`
+- `last_run_time`
+- `last_operator`
+- `day`
+- `Ageing bucket_`
+- `operator`
 
 Key settings:
 - `STUCKUP_AUTO_SYNC_ENABLED=true`
 - `STUCKUP_POLL_INTERVAL_SECONDS=60`
 - `STUCKUP_REFERENCE_ROW=2`
+- `STUCKUP_FILTER_STATUS_VALUES=SOC_Packed,SOC_Packing,SOC_Staging,SOC_LHTransported,SOC_LHTransporting`
+- `STUCKUP_EXPORT_COLUMNS=journey_type,spx_station_site,shipment_id,status_group,status_desc,status_timestamp,ageing_bucket,hub_dest_station_name,hub_region,cluster_name,fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator`
 - `SUPABASE_STUCKUP_STATE_TABLE=stuckup_sync_state`
 - `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
 - `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt` (fallback only)

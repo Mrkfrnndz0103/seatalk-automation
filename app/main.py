@@ -59,6 +59,11 @@ async def uptime_ping() -> dict[str, str]:
     return {"status": "alive"}
 
 
+@app.get("/stuckup/status")
+async def stuckup_status() -> dict:
+    return stuckup_monitor.get_status()
+
+
 @app.post("/callbacks/seatalk")
 async def seatalk_callback(request: Request, signature: str | None = Header(default=None)):
     body = await request.body()

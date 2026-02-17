@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import Settings
@@ -23,28 +24,44 @@ class StuckupMonitor:
         self._stop_event = asyncio.Event()
         self._state_path = Path(settings.stuckup_state_path)
         self._state_path.parent.mkdir(parents=True, exist_ok=True)
+        self._last_status: dict[str, str | int | None] = {
+            "monitor": "idle",
+            "last_check_at_utc": None,
+            "last_change_detected_at_utc": None,
+            "last_sync_status": None,
+            "last_sync_message": None,
+            "last_source_rows": 0,
+            "last_upserted_rows": 0,
+            "last_exported_rows": 0,
+            "last_exported_columns": 0,
+        }
 
     def start(self) -> None:
         if not self._settings.stuckup_auto_sync_enabled:
             logger.info("stuckup auto-sync is disabled")
+            self._last_status["monitor"] = "disabled"
             return
         if not self._settings.stuckup_source_spreadsheet_id or not self._settings.stuckup_target_spreadsheet_id:
             logger.warning("stuckup monitor not started: source/target spreadsheet ID is missing")
+            self._last_status["monitor"] = "not_started_missing_sheet_config"
             return
         if not self._settings.google_service_account_file:
             logger.warning("stuckup monitor not started: GOOGLE_SERVICE_ACCOUNT_FILE is missing")
+            self._last_status["monitor"] = "not_started_missing_google_credentials"
             return
         if self._task and not self._task.done():
             return
         self._stop_event.clear()
         self._task = asyncio.create_task(self._run_loop())
         logger.info("stuckup monitor started")
+        self._last_status["monitor"] = "running"
 
     async def stop(self) -> None:
         self._stop_event.set()
         if self._task:
             await self._task
             logger.info("stuckup monitor stopped")
+        self._last_status["monitor"] = "stopped"
 
     async def _run_loop(self) -> None:
         while not self._stop_event.is_set():
@@ -62,6 +79,7 @@ class StuckupMonitor:
                 pass
 
     async def _check_reference_row_and_sync(self) -> None:
+        self._last_status["last_check_at_utc"] = datetime.now(timezone.utc).isoformat()
         row = self._settings.stuckup_reference_row
         reference_range = self._build_reference_row_range(row)
         values = self._sheets.read_values(
@@ -81,10 +99,19 @@ class StuckupMonitor:
         self._save_last_fingerprint(fingerprint)
         if previous is None:
             logger.info("stuckup monitor baseline set from reference row %s", row)
+            self._last_status["last_sync_status"] = "baseline_set"
+            self._last_status["last_sync_message"] = f"baseline set from row {row}"
             return
 
         logger.info("stuckup reference row changed, triggering sync")
+        self._last_status["last_change_detected_at_utc"] = datetime.now(timezone.utc).isoformat()
         result = self._service.sync_source_sheet_to_supabase()
+        self._last_status["last_sync_status"] = result.status
+        self._last_status["last_sync_message"] = result.message
+        self._last_status["last_source_rows"] = result.source_rows
+        self._last_status["last_upserted_rows"] = result.upserted_rows
+        self._last_status["last_exported_rows"] = result.exported_rows
+        self._last_status["last_exported_columns"] = result.exported_columns
         logger.info(
             "stuckup auto-sync result: status=%s message=%s source_rows=%s upserted_rows=%s exported_rows=%s",
             result.status,
@@ -124,3 +151,14 @@ class StuckupMonitor:
         start_col = cols[0]
         end_col = cols[1] if len(cols) > 1 else cols[0]
         return f"{start_col}{row}:{end_col}{row}"
+
+    def get_status(self) -> dict[str, str | int | bool | None]:
+        return {
+            "auto_sync_enabled": self._settings.stuckup_auto_sync_enabled,
+            "poll_interval_seconds": self._settings.stuckup_poll_interval_seconds,
+            "reference_row": self._settings.stuckup_reference_row,
+            "source_worksheet": self._settings.stuckup_source_worksheet_name,
+            "source_range": self._settings.stuckup_source_range,
+            "target_worksheet": self._settings.stuckup_target_worksheet_name,
+            **self._last_status,
+        }

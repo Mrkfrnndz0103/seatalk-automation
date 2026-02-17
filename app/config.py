@@ -6,7 +6,14 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-DEFAULT_STUCKUP_EXPORT_RANGES = "B1:E,I1:J,M,Q1:U,Y1:AA,AH1:AK"
+DEFAULT_STUCKUP_FILTER_STATUS_VALUES = (
+    "SOC_Packed,SOC_Packing,SOC_Staging,SOC_LHTransported,SOC_LHTransporting"
+)
+DEFAULT_STUCKUP_EXPORT_COLUMNS = (
+    "journey_type,spx_station_site,shipment_id,status_group,status_desc,"
+    "status_timestamp,ageing_bucket,hub_dest_station_name,hub_region,cluster_name,"
+    "fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator"
+)
 
 
 class Settings(BaseSettings):
@@ -25,7 +32,11 @@ class Settings(BaseSettings):
 
     stuckup_target_spreadsheet_id: str = Field(default="", alias="STUCKUP_TARGET_SPREADSHEET_ID")
     stuckup_target_worksheet_name: str = Field(default="Stuckup", alias="STUCKUP_TARGET_WORKSHEET_NAME")
-    stuckup_export_ranges: str = Field(default=DEFAULT_STUCKUP_EXPORT_RANGES, alias="STUCKUP_EXPORT_RANGES")
+    stuckup_filter_status_values: str = Field(
+        default=DEFAULT_STUCKUP_FILTER_STATUS_VALUES,
+        alias="STUCKUP_FILTER_STATUS_VALUES",
+    )
+    stuckup_export_columns: str = Field(default=DEFAULT_STUCKUP_EXPORT_COLUMNS, alias="STUCKUP_EXPORT_COLUMNS")
 
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_service_role_key: str = Field(default="", alias="SUPABASE_SERVICE_ROLE_KEY")

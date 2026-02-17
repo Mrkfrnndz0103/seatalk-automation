@@ -38,6 +38,12 @@ def test_health_and_uptime(monkeypatch) -> None:
     assert r2.status_code == 200
     assert r2.json() == {"status": "alive"}
 
+    r3 = client.get("/stuckup/status")
+    assert r3.status_code == 200
+    body = r3.json()
+    assert body["auto_sync_enabled"] is False
+    assert body["reference_row"] == 2
+
 
 def test_event_verification_signature(monkeypatch) -> None:
     main = _load_main(monkeypatch)

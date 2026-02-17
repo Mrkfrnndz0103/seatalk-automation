@@ -34,5 +34,6 @@ class StuckupWorkflow:
             "Manual `/stuckup sync` is disabled.\n"
             "Auto-sync trigger: change detected on source sheet reference row (`STUCKUP_REFERENCE_ROW`, default 2).\n"
             "Poll interval: `STUCKUP_POLL_INTERVAL_SECONDS`.\n"
-            "Export ranges: `STUCKUP_EXPORT_RANGES` (default: B1:E,I1:J,M,Q1:U,Y1:AA,AH1:AK)."
+            "Filter statuses: `STUCKUP_FILTER_STATUS_VALUES`.\n"
+            "Export columns: `STUCKUP_EXPORT_COLUMNS`."
         )

@@ -119,3 +119,11 @@ UptimeRobot sample config:
 3. Python build fails with `pydantic-core`/`maturin`:
    - Ensure Python `3.12.9`
    - Clear build cache and redeploy
+
+## 11. Supabase schema for stuckup
+
+Run SQL from: `docs/supabase_stuckup_schema.sql`
+
+## 12. Cloudflare tools reference
+
+See: `docs/cloudflare_tools_matrix.md`

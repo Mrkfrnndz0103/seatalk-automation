@@ -36,13 +36,15 @@ class StuckupService:
 
         source_headers = [str(v).strip() for v in values[0]]
         normalized_headers = self._normalize_headers(source_headers)
+        allowed_statuses = {v.strip() for v in self._settings.stuckup_filter_status_values.split(",") if v.strip()}
 
         source_records: list[dict[str, str]] = []
         for row in values[1:]:
             record: dict[str, str] = {}
             for idx, normalized in enumerate(normalized_headers):
                 record[normalized] = row[idx] if idx < len(row) else ""
-            source_records.append(record)
+            if record.get("status_desc", "") in allowed_statuses:
+                source_records.append(record)
 
         self._write_backup(source_records)
 
@@ -56,13 +58,19 @@ class StuckupService:
                 source_rows=len(source_records),
             )
 
-        selected_indices = self._expand_column_ranges(self._settings.stuckup_export_ranges)
-        selected_indices = [i for i in selected_indices if i < len(source_headers)]
-        if not selected_indices:
-            return self._error("STUCKUP_EXPORT_RANGES did not resolve to any source columns", source_rows=len(source_records))
+        source_to_normalized = {source_headers[i]: normalized_headers[i] for i in range(len(source_headers))}
+        requested_export_headers = [v.strip() for v in self._settings.stuckup_export_columns.split(",") if v.strip()]
+        if not requested_export_headers:
+            return self._error("STUCKUP_EXPORT_COLUMNS is empty", source_rows=len(source_records))
 
-        selected_source_headers = [source_headers[i] for i in selected_indices]
-        selected_normalized_headers = [normalized_headers[i] for i in selected_indices]
+        selected_source_headers: list[str] = []
+        selected_normalized_headers: list[str] = []
+        for header in requested_export_headers:
+            normalized = source_to_normalized.get(header)
+            if not normalized:
+                normalized = self._normalize_header_name(header)
+            selected_source_headers.append(header)
+            selected_normalized_headers.append(normalized)
 
         fetch_result, supabase_rows = self._supabase.fetch_all_rows(order_by=self._settings.supabase_stuckup_conflict_column)
         if fetch_result.status != "ok":
@@ -112,37 +120,8 @@ class StuckupService:
         return normalized
 
     @staticmethod
-    def _column_to_index(column: str) -> int:
-        value = 0
-        for char in column:
-            value = value * 26 + (ord(char) - ord("A") + 1)
-        return value - 1
-
-    def _expand_column_ranges(self, raw_ranges: str) -> list[int]:
-        selected: list[int] = []
-        seen: set[int] = set()
-        tokens = [t.strip().upper() for t in raw_ranges.split(",") if t.strip()]
-
-        for token in tokens:
-            start, end = token.split(":", 1) if ":" in token else (token, token)
-            start_col = re.sub(r"[^A-Z]", "", start)
-            end_col = re.sub(r"[^A-Z]", "", end)
-            if not start_col:
-                continue
-            if not end_col:
-                end_col = start_col
-
-            start_idx = self._column_to_index(start_col)
-            end_idx = self._column_to_index(end_col)
-            if end_idx < start_idx:
-                start_idx, end_idx = end_idx, start_idx
-
-            for idx in range(start_idx, end_idx + 1):
-                if idx not in seen:
-                    seen.add(idx)
-                    selected.append(idx)
-
-        return selected
+    def _normalize_header_name(header: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "_", header.strip().lower()).strip("_")
 
     def _write_backup(self, rows: list[dict[str, str]]) -> None:
         with self._backup_path.open("w", encoding="utf-8") as f:
