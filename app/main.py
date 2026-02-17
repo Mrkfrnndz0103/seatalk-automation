@@ -45,6 +45,11 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/uptime-ping")
+async def uptime_ping() -> dict[str, str]:
+    return {"status": "alive"}
+
+
 @app.post("/callbacks/seatalk")
 async def seatalk_callback(request: Request, signature: str | None = Header(default=None)):
     body = await request.body()

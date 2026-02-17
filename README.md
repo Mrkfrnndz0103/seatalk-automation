@@ -54,7 +54,19 @@ Notes:
 - `/shortlanded`
 - `/lh_request`
 
-## 6. Deploy
+## 6. UptimeRobot (Render Free Tier)
+
+To reduce cold starts on Render free tier, create an UptimeRobot monitor:
+
+1. Monitor Type: `HTTP(s)`
+2. URL: `https://<your-render-service>.onrender.com/uptime-ping`
+3. Monitoring interval: `5 minutes`
+4. Timeout: `30 seconds`
+5. Alert contacts: optional
+
+Expected response: HTTP `200` with body `{"status":"alive"}`.
+
+## 7. Deploy
 
 - Render config: `render.yaml` (native Python runtime)
 - Python runtime pin: `.python-version` + `PYTHON_VERSION=3.12.9`

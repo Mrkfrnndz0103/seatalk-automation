@@ -84,7 +84,14 @@ After saving, SeaTalk sends verification event. Your app must respond quickly.
 1. Cloudflare Free is sufficient for DNS/proxy/basic WAF setup.
 2. Render Free may sleep on inactivity.
 3. Cold starts can delay SeaTalk callbacks.
-4. Optional mitigation: periodic health ping to `/health`.
+4. Mitigation: periodic uptime ping using UptimeRobot.
+
+UptimeRobot sample config:
+- Monitor Type: `HTTP(s)`
+- URL: `https://<your-render-service>.onrender.com/uptime-ping`
+- Monitoring interval: `5 minutes`
+- Timeout: `30 seconds`
+- Expected status: `200`
 
 ## 10. Quick Troubleshooting
 
