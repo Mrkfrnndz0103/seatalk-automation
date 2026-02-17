@@ -49,7 +49,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/uptime-ping")
+@app.api_route("/uptime-ping", methods=["GET", "HEAD"])
 async def uptime_ping() -> dict[str, str]:
     return {"status": "alive"}
 
