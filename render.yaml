@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: seatalk-workflow-server
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_HOST
+        value: 0.0.0.0
+      - key: APP_PORT
+        value: 8000
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SEATALK_VERIFY_SIGNATURE
+        value: true
+      - key: STUCKUP_SOURCE_WORKSHEET_NAME
+        value: Source
+      - key: STUCKUP_SOURCE_RANGE
+        value: A1:AL
+      - key: STUCKUP_TARGET_WORKSHEET_NAME
+        value: Stuckup
+      - key: STUCKUP_EXPORT_RANGES
+        value: B1:E,I1:J,M,Q1:U,Y1:AA,AH1:AK
+      - key: SUPABASE_STUCKUP_TABLE
+        value: stuckup_shipments
+      - key: SUPABASE_STUCKUP_CONFLICT_COLUMN
+        value: shipment_id

@@ -1,0 +1,55 @@
+OpenAPI Pagination Standard
+In SeaTalk Open Platform, we use a "cursor"-based pagination method to divide a long list into multiple pages to improve the response time of server APIs. When you call a relevant API for the first time, the SeaTalk Open Platform server will store a "snapshot" of the result and send it back to you in smaller batches controlled by "page_size" and connected by "cursors". See the following for an introduction to how pagination is implemented so you can understand how specific server APIs are designed.
+
+How to Use the Pagination Function
+In the first request of the server API, you need to provide us with the query info including:
+
+What is the list of entities the request wants to retrieve (e.g. a list of employees under department "Shopee → Singapore", or a list of departments under "Shopee → Singapore")
+What is the length of the list to be retrieved in this request (e.g. 10 items or 50 items)
+Example of a First Request (Body)
+// Using example of Get Department API
+{
+    "department_code": "SHOPEE APPS UAT",
+    "page_size": 10,
+    "fetch_child": "true"
+}
+
+Copy
+SeaTalk Open Platform will respond with the desired segment of the data you want.
+
+// For Get Department API
+{
+      "code": 0,
+      "departments": [{
+            "department_code": "12",
+            "name": "Human Resource",
+            "department_alias": "",
+            "lead_employee_code": "998",
+            "visibility_info": [{
+            "is_hidden": false,
+            "hide_type": 0,
+            "department_whitelist": ["20", "21"]
+      }],
+      "direct_employee_count": 15,
+      "parent_department_code": "10"
+},
+{
+      ... // Another department
+},
+      ... // More departments
+],
+      "next_cursor": "MZYlo=TEc5VdXNlcjV0" // This cursor will be used in the next request. 
+      // If the "next_cursor" is empty, it means there is no more data left 
+}
+
+Copy
+After receiving the response, you can put the "next_cursor"  info into the "cursor" section in the new request together with the desired item length to get the next batch of responses and a new cursor.
+
+Example of a Following Request (Body)
+// Using example of Get Department API
+{
+    "department_code": "SHOPEE APPS UAT",
+    "page_size": 10,
+    "fetch_child": "true",
+    "cursor": "MZYlo=TEc5VdXNlcjV0"
+}

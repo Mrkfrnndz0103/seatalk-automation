@@ -1,0 +1,1108 @@
+Send Message to a Bot User
+API Description
+Use this API to send a message to a user of the bot in a 1-on-1 chat. 
+
+Currently, you can leverage this API to send
+
+text messages with/without formatting
+images
+interactive messages
+files
+Note:
+
+To call this API, your app must enable the bot capability and have an Online status. See more at Quickly build a Bot.
+This API requires Send Message to Bot User permission and the relevant Service Scope.
+This API is limited to 300 requests per minute under one app ID.
+Since February 6, 2025, this API no longer validates the user's subscriber identity.
+Since October 27 2025, this API supports an additional optional parameter: "usable_platform".
+Request Method: POST
+
+End Point: https://openapi.seatalk.io/messaging/v2/single_chat
+
+Send a Text Message with/without Formatting
+Request Parameter
+
+Header
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Sample
+
+Authorization
+
+string
+
+Yes
+
+Obtained through the Get App Access Token API
+
+N/A
+
+Bearer c8bda0f77ef940c5bea9f23b2d7fc0d8
+
+Content-Type
+
+string
+
+Yes
+
+Request header format
+
+N/A
+
+application/json
+
+Body
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+employee_code
+
+string
+
+Yes
+
+The employee_code of the user
+
+N/A
+
+N/A
+
+"e_12345678"
+
+message
+
+object
+
+Yes
+
+The message to be sent out
+
+N/A
+
+N/A
+
+ 
+
+usable_platform
+
+string
+
+No
+
+The platform(s) where the message can be viewed fully and acted on (e.g., tapping a button on an interactive message card)
+
+- "all": all platforms (mobile + desktop)
+
+- "mobile": mobile platforms only (iOS + Android). On desktop platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on mobile devices due to the App's setting. Please check this message on SeaTalk Mobile App."
+
+- "desktop": desktop platforms only (Desktop + Web). On mobile platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on desktop devices due to the App's setting. Please check this message on SeaTalk Desktop/Web App."
+
+"all"
+
+N/A
+
+"mobile"
+
+Message Object
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+tag
+
+string
+
+Yes
+
+The type of the message - be it "text" in this case
+
+N/A
+
+20 characters
+
+"text"
+
+text
+
+object
+
+Yes
+
+The text message object
+
+N/A
+
+N/A
+
+ 
+
+∟format
+
+int
+
+No
+
+The formatting to use in the content of the text message. Can be
+
+1: Formatted text message (Markdown)
+
+2: Plain text message
+
+1
+
+N/A
+
+1
+
+∟content
+
+string
+
+Yes
+
+- The content of the text message with markdown syntax supported
+
+- Refer to this document for supported markdown elements
+
+N/A
+
+Min: 1 character
+
+Max: 4096 characters
+
+"How can I help you?"
+
+thread_id
+
+string
+
+No
+
+The thread ID. Provide thread_id to send message as a thread reply.
+
+ 
+
+To start a thread in an unthreaded root message, define thread_id as the message_id of the root message.
+The root message has to be sent within the past 7 days.
+ 
+
+N/A
+
+N/A
+
+ 
+
+Request Sample
+
+{
+    "employee_code": "e_12345678",
+    "message": {
+        "tag": "text",
+        "text": {
+            "format": 1,
+            "content": "Hi, this is a text message with supported formats.\nYou would see:\n1. **bold**\n2. *italic*\n3. `inline code`\n- List item 1\n- List item 2\n```\nCode Block\n```"
+        }
+    },
+    "usable_platform": "mobile"
+}
+
+Copy
+Response Parameter
+Result Fields
+
+Parameters
+
+Type
+
+Description
+
+code
+
+int
+
+Refer to Error Code for explanations
+
+Response Sample
+
+{
+    "code": 0
+}
+
+Copy
+Send an Image Message
+Request Parameter
+Header
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Sample
+
+Authorization
+
+string
+
+Yes
+
+Obtained through the Get App Access Token API
+
+N/A
+
+Bearer c8bda0f77ef940c5bea9f23b2d7fc0d8
+
+Content-Type
+
+string
+
+Yes
+
+Request header format
+
+N/A
+
+application/json
+
+Body
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+employee_code
+
+string
+
+Yes
+
+The employee_code of the user
+
+N/A
+
+N/A
+
+"e_12345678"
+
+message
+
+object
+
+Yes
+
+The message to be sent out
+
+N/A
+
+N/A
+
+ 
+
+usable_platform
+
+string
+
+No
+
+The platform(s) where the message can be viewed fully and acted on (e.g., tapping a button on an interactive message card)
+
+- "all": all platforms (mobile + desktop)
+
+- "mobile": mobile platforms only (iOS + Android). On desktop platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on mobile devices due to the App's setting. Please check this message on SeaTalk Mobile App."
+
+- "desktop": desktop platforms only (Desktop + Web). On mobile platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on desktop devices due to the App's setting. Please check this message on SeaTalk Desktop/Web App."
+
+"all"
+
+N/A
+
+"mobile"
+
+Message Object
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+tag
+
+string
+
+Yes
+
+The type of the message
+
+N/A
+
+20 characters
+
+"image"
+
+image
+
+object
+
+Yes
+
+The image message object
+
+N/A
+
+N/A
+
+ 
+
+∟content
+
+string
+
+Yes
+
+- The Base64-encoded image file
+
+- Only PNG, JPG, and GIF images are supported
+
+N/A
+
+Maximum 5MB after encoding
+
+ 
+
+Request Sample
+
+{
+    "employee_code": "e_12345678",
+    "message": {
+        "tag": "image",
+        "image": {
+            "content": "__image__base64_string__"
+        }
+    },
+    "usable_platform": "mobile"
+}
+
+Copy
+Send an Interactive Message
+Requires SeaTalk App version 3.38.1 or later
+Request parameter
+Header
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Sample
+
+Authorization
+
+string
+
+Yes
+
+Obtained through the Get App Access Token API
+
+N/A
+
+Bearer c8bda0f77ef940c5bea9f23b2d7fc0d8
+
+Content-Type
+
+string
+
+Yes
+
+Request header format
+
+N/A
+
+application/json
+
+Body
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+employee_code
+
+string
+
+Yes
+
+The employee_code of the user
+
+N/A
+
+N/A
+
+"e_12345678"
+
+message
+
+object
+
+Yes
+
+The message to be sent out, for the composition of this object please refer to the table below
+
+N/A
+
+N/A
+
+/
+
+usable_platform
+
+string
+
+No
+
+The platform(s) where the message can be viewed fully and acted on (e.g., tapping a button on an interactive message card)
+
+- "all": all platforms (mobile + desktop)
+
+- "mobile": mobile platforms only (iOS + Android). On desktop platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on mobile devices due to the App's setting. Please check this message on SeaTalk Mobile App."
+
+- "desktop": desktop platforms only (Desktop + Web). On mobile platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on desktop devices due to the App's setting. Please check this message on SeaTalk Desktop/Web App."
+
+"all"
+
+N/A
+
+"mobile"
+
+Message Object
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+message
+
+object
+
+Yes
+
+The message to be sent
+
+∟tag
+
+string
+
+Yes
+
+The type of the message, in this case, is 'interactive_message'.
+
+∟interactive_message
+
+object
+
+Yes
+
+The interactive message object
+
+∟elements
+
+object
+
+Yes
+
+For a comprehensive introduction to building an interactive message card, see Build a Card
+
+Request Sample
+{
+  "employee_code": "e_czduwnhj",
+  "message": {
+    "tag": "interactive_message",
+    "interactive_message": {
+      "elements": [
+        {
+          "element_type": "title",
+          "title": {
+            "text": "Interactive Message Title"
+          }
+        },
+        {
+          "element_type": "description",
+          "description": {
+            "format": 1,
+            "text": "Interactive Message Description"
+          }
+        },
+        {
+          "element_type": "button",
+          "button": {
+            "button_type": "callback",
+            "text": "Callback Button",
+            "value": "test"
+          }
+        },
+        {
+          "element_type": "button",
+          "button": {
+            "button_type": "redirect",
+            "text": "rn link",
+            "mobile_link": {
+              "type": "rn",
+              "path": "/webview",
+              "params": {}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "usable_platform": "mobile"
+}
+
+Copy
+Response Parameter
+Result Fields
+
+Parameters
+
+Type
+
+Description
+
+code
+
+int
+
+Refer to Error Code for explanations
+
+message_id
+
+string
+
+The id of the sent out message
+
+Response Sample
+
+{
+    "code": 0,
+    "message_id": "uFrIUn3uDAIRQpReXQ0G6T8fxG0duqp67smFLmG5cwU"
+}
+
+Copy
+Send a File Message
+Requires SeaTalk App version 3.41.0 or later
+Request Parameter
+Header
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Sample
+
+Authorization
+
+string
+
+Yes
+
+Obtained through the Get App Access Token API
+
+N/A
+
+Bearer c8bda0f77ef940c5bea9f23b2d7fc0d8
+
+Content-Type
+
+string
+
+Yes
+
+Request header format
+
+N/A
+
+application/json
+
+Body
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+employee_code
+
+string
+
+Yes
+
+The employee_code of the user
+
+N/A
+
+N/A
+
+"e_12345678"
+
+message
+
+object
+
+Yes
+
+The message to be sent out, for the composition of this object please refer to the table below
+
+N/A
+
+N/A
+
+/
+
+usable_platform
+
+string
+
+No
+
+The platform(s) where the message can be viewed fully and acted on (e.g., tapping a button on an interactive message card)
+
+- "all": all platforms (mobile + desktop)
+
+- "mobile": mobile platforms only (iOS + Android). On desktop platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on mobile devices due to the App's setting. Please check this message on SeaTalk Mobile App."
+
+- "desktop": desktop platforms only (Desktop + Web). On mobile platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on desktop devices due to the App's setting. Please check this message on SeaTalk Desktop/Web App."
+
+"all"
+
+N/A
+
+"mobile"
+
+Message Object
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+tag
+
+string
+
+Yes
+
+The type of the message, in this case "file"
+
+N/A
+
+20 characters
+
+"file"
+
+file
+
+object
+
+Yes
+
+The file message object
+
+N/A
+
+N/A
+
+/
+
+∟content
+
+string
+
+Yes
+
+- The Base64-encoded file
+
+- All file types are supported including Images (only PNG, JPG, and GIF have preview in client)
+
+N/A
+
+Maximum 5MB and Minimum 10 B after encoding
+
+"VGhpcyBpcyBhIGRlbW8gdGV4dCBmaWxlLgo="
+
+∟filename
+
+string
+
+Yes
+
+The file name with extension; files with no extension specified will be sent as unidentified files
+
+N/A
+
+100 characters
+
+"abc.txt"
+
+Request Sample
+{
+    "employee_code": "e_12345678",
+    "message": {
+        "tag": "file",
+        "file": {
+            "filename": "demo.txt",
+            "content": "VGhpcyBpcyBhIGRlbW8gdGV4dCBmaWxlLgo="
+        }
+    },
+    "usable_platform": "mobile"
+}
+
+Copy
+Response Parameter
+Result Fields
+Parameters
+
+Type
+
+Description
+
+code
+
+int
+
+Refer to Error Code for explanations
+
+message_id
+
+string
+
+The id of the sent out message
+
+Response Sample
+{
+    "code": 0,
+    "message_id": "uFrIUn3uDAIRQpReXQ0G6T8fxG0duqp67smFLmG5cwU"
+}
+
+Copy
+Send a Markdown Message (Phasing out)
+**Note**:
+
+SeaTalk is phasing out the "Markdown” message type in favor of the more flexible markdown formatting syntax concept that can be embedded into not only text messages but all applicable message types.
+It is recommended to use the "text" message type in producing formatted text messages.
+Request Parameter
+Header
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Sample
+
+Authorization
+
+string
+
+Yes
+
+Obtained through the Get App Access Token API
+
+N/A
+
+Bearer c8bda0f77ef940c5bea9f23b2d7fc0d8
+
+Content-Type
+
+string
+
+Yes
+
+Request header format
+
+N/A
+
+application/json
+
+Body
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+employee_code
+
+string
+
+Yes
+
+The employee_code of the user
+
+N/A
+
+N/A
+
+"e_12345678"
+
+message
+
+object
+
+Yes
+
+The message to be sent out
+
+N/A
+
+N/A
+
+ 
+
+usable_platform
+
+string
+
+No
+
+The platform(s) where the message can be viewed fully and acted on (e.g., tapping a button on an interactive message card)
+
+- "all": all platforms (mobile + desktop)
+
+- "mobile": mobile platforms only (iOS + Android). On desktop platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on mobile devices due to the App's setting. Please check this message on SeaTalk Mobile App."
+
+- "desktop": desktop platforms only (Desktop + Web). On mobile platforms, a default message will be shown with text "[Interactive Message] This message can only be viewed on desktop devices due to the App's setting. Please check this message on SeaTalk Desktop/Web App."
+
+"all"
+
+N/A
+
+"mobile"
+
+Message Object
+
+Parameter
+
+Type
+
+Mandatory
+
+Description
+
+Default
+
+Length Limit
+
+Sample
+
+tag
+
+string
+
+Yes
+
+The type of the message
+
+N/A
+
+20 characters
+
+"markdown"
+
+markdown
+
+object
+
+Yes
+
+The information about the Markdown message
+
+N/A
+
+N/A
+
+ 
+
+∟content
+
+string
+
+Yes
+
+The content of the message using the Markdown syntax
+
+N/A
+
+Min: 1 character
+
+Max: 4096 characters
+
+"This is a Markdown msg.\n\nYou should see:\n\n1. __bold__\n\n2. *Italics*\n\n- List item 1\n\n- List item 2"
+
+Request Sample
+
+{
+    "employee_code": "e_12345678",
+    "message": {
+        "tag": "markdown",
+        "markdown": {
+            "content": "This is a Markdown msg.\n\nYou should see:\n\n1. __bold__\n\n2. *Italics*\n\n- List item 1\n\n- List item 2"
+        }
+    },
+    "usable_platform": "mobile"
+}
+
+Copy
+Markdown Elements Supported
+Element
+
+Effect
+
+Bold
+
+This is a bold word
+
+Italic
+
+This is an italic word
+
+Ordered lists
+
+1. Item 1
+
+2. Item 2
+
+Unordered list
+
+- Item 1
+
+- Item 2
+
+Note: 
+
+To make a new line, use two new line characters. I.e., \n\n
+Response Parameter
+Result Fields
+
+Parameters
+
+Type
+
+Description
+
+code
+
+int
+
+Refer to Error Code for explanations
+
+Response Sample
+
+{
+    "code": 0
+}

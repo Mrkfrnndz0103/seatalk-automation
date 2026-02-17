@@ -1,0 +1,296 @@
+Overview of Server APIs
+This article gives you a glance at all the server APIs currently supported by SeaTalk Open Platform. For a detailed introduction to a particular API, click on the hyperlink to visit the respective API documentation. 
+
+Core Concepts
+Service Scope: the service scope of your app refers to who can see and use your app on SeaTalk.
+Data Scope: the data scope of your app refers to whose employee data your app can retrieve and update.
+Permission: the permission of an API gives your app the access to send requests to the API endpoint. If you find that an API your app needs to call requires API permission, configure your app's permission list to include that API.
+The list of server APIs below summarises the specific APIs provided and whether a particular API needs the configuration of availability, server API as well as API permission. This information is also stated in each API doc. 
+
+List of Server APIs
+Note:
+
+To call the APIs that require Service Scope configuration successfully, your app has to be released first. SeaTalk Open Platform will check the Effective Service Scope of your app configured in the release detail.
+Category
+
+API
+
+Description
+
+Service scope configuration needed?
+
+Data scope configuration needed?
+
+Permission needed?
+
+Authentication
+
+Get App Access Token
+
+Obtain access_token, which is used to authenticate the identity of the app that sends API requests.
+
+❌
+
+❌
+
+❌
+
+Verify Single Sign-on Token
+
+Request the basic info of a user with a temporary Single Sign-On token
+
+✅
+
+❌
+
+❌
+
+Verify Login With SeaTalk Code
+
+Exchange an authorization code obtained through a redirect URI configured with Login With SeaTalk for a user's basic information
+
+❌
+
+❌
+
+✅
+
+Approval Center Integration
+
+Create Approval Item
+
+Create a new standard approval item in the approval center server
+
+❌
+
+❌
+
+✅
+
+Get Approval Item
+
+Retrieve an existing approval item from the approval center server
+
+❌
+
+❌
+
+✅
+
+Update Approval Item
+
+Update an existing approval item in the approval center server
+
+❌
+
+❌
+
+✅
+
+Delete Approval Item
+
+Delete an existing approval item in the approval center server
+
+❌
+
+❌
+
+✅
+
+Contacts
+
+Onboard Employee
+
+Onboard a new employee in your organization
+
+❌
+
+❌
+
+✅
+
+Check Employee Existence
+
+Verify whether an employee exists/some employees exist in your organization or not via the user's SeaTalk ID
+
+❌
+
+✅
+
+✅
+
+Get Employee Code With Email
+
+Exchange a user's email for his/her employee_code
+
+❌
+
+❌
+
+✅
+
+Get Employee Profile
+
+Obtain an employee's basic profile information
+
+❌
+
+✅
+
+✅
+
+Get User Language Preference
+
+Obtain the user's language preference setting on the SeaTalk mobile app
+
+❌
+
+✅
+
+✅
+
+Update Employee
+
+Update an existing employee's information in your organization
+
+❌
+
+✅
+
+✅
+
+Update Employee Avatar
+
+Update an existing employee's avatar
+
+❌
+
+❌
+
+✅
+
+Reboard Employee
+
+Re-onboard an offboarded employee in your organization
+
+❌
+
+❌
+
+✅
+
+Create Department
+
+Create a new department in your organization
+
+❌
+
+❌
+
+✅
+
+Get Departments
+
+Obtain a list of departments including the department ID, name, parent department ID, and other related information
+
+❌
+
+✅
+
+✅
+
+Get Department Employees
+
+Obtain a list of employees under a specific department
+
+❌
+
+✅
+
+✅
+
+Update Department
+
+Update an existing department in your organization
+
+❌
+
+❌
+
+✅
+
+Delete Department
+
+Delete a department in your organization
+
+❌
+
+❌
+
+✅
+
+Messaging
+
+Send Message to Group Chat
+
+Send a message to a group chat which the bot has been added to
+
+❌
+
+❌
+
+✅
+
+Send Message to a Bot User
+
+Send a message to a user of the bot in a 1-on-1 chat
+
+✅
+
+❌
+
+✅
+
+Group Chat
+
+Get Group Info
+
+Retrieve the basic group info of a group chat which the bot has been added to
+
+❌
+
+❌
+
+✅
+
+Get Chat History
+
+Obtain the group chat histories sent within 7 days
+
+❌
+
+❌
+
+✅
+
+App Notifications
+
+Send Service Notice
+
+Send service notices to an employee/employees in SeaTalk
+
+✅
+
+❌
+
+✅
+
+Set Notification Badge
+
+Configure the notification badge that appears on the top-right corner of the app on Workspace
+
+✅
+
+❌
+
+✅
