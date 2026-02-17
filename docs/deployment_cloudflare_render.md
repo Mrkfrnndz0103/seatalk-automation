@@ -4,7 +4,8 @@
 
 1. Push this repo to GitHub.
 2. Create a Render Web Service using `render.yaml`.
-3. Set required secrets in Render environment variables:
+3. Ensure runtime is Python 3.12 (`runtime.txt` and `PYTHON_VERSION=3.12.9`) to avoid building `pydantic-core` from source.
+4. Set required secrets in Render environment variables:
    - `SEATALK_APP_ID`
    - `SEATALK_APP_SECRET`
    - `SEATALK_SIGNING_SECRET`
@@ -12,7 +13,7 @@
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `STUCKUP_SOURCE_SPREADSHEET_ID`
    - `STUCKUP_TARGET_SPREADSHEET_ID`
-4. Upload your Google service account JSON and mount it at runtime, then set:
+5. Upload your Google service account JSON and mount it at runtime, then set:
    - `GOOGLE_SERVICE_ACCOUNT_FILE` (example: `/etc/secrets/google-service-account.json`)
 
 ## 2. Cloudflare in front of Render
