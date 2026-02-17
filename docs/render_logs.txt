@@ -1,18 +1,49 @@
-NFO:     124.217.61.78:0 - "GET / HTTP/1.1" 404 Not Found
-INFO:     124.217.61.78:0 - "POST /callbacks/seatalk HTTP/1.1" 401 Unauthorized
-2026-02-17 04:53:43,757 ERROR app.workflows.stuckup.monitor - stuckup monitor iteration failed
-Traceback (most recent call last):
-  File "/opt/render/project/src/app/workflows/stuckup/monitor.py", line 49, in _run_loop
-    await self._check_reference_row_and_sync()
-  File "/opt/render/project/src/app/workflows/stuckup/monitor.py", line 63, in _check_reference_row_and_sync
-    values = self._sheets.read_values(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/render/project/src/app/integrations/google_sheets.py", line 31, in read_values
-    ).execute()
-      ^^^^^^^^^
-  File "/opt/render/project/src/.venv/lib/python3.12/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
-    return wrapped(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/render/project/src/.venv/lib/python3.12/site-packages/googleapiclient/http.py", line 938, in execute
-    raise HttpError(resp, content, uri=self.uri)
-googleapiclient.errors.HttpError: <HttpError 400 when requesting https://sheets.googleapis.com/v4/spreadsheets/1u1PyicYuGWWlAvxZ2iNnGAdAAC4Pksy8x-SH8U56HYM/values/Stuck%20Report%20Data%20Puller%20-%20SOC%205%20Raw%20Data%21A2%3AZZ2?alt=json returned "Unable to parse range: Stuck Report Data Puller - SOC 5 Raw Data!A2:ZZ2". Details: "Unable to parse range: Stuck Report Data Puller - SOC 5 Raw Data!A2:ZZ2">
+C:\Users\phlspxuser\Desktop\data_automation>python -m pytest -q
+..........                                                                                                       [100%]
+================================================== warnings summary ===================================================
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_event_verification_signature
+tests/test_api_endpoints.py::test_event_verification_invalid_signature
+  C:\Users\phlspxuser\Desktop\data_automation\app\main.py:33: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("startup")
+
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_event_verification_signature
+tests/test_api_endpoints.py::test_event_verification_signature
+tests/test_api_endpoints.py::test_event_verification_invalid_signature
+tests/test_api_endpoints.py::test_event_verification_invalid_signature
+  C:\Users\phlspxuser\miniconda3\Lib\site-packages\fastapi\applications.py:4495: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    return self.router.on_event(event_type)
+
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_health_and_uptime
+tests/test_api_endpoints.py::test_event_verification_signature
+tests/test_api_endpoints.py::test_event_verification_invalid_signature
+  C:\Users\phlspxuser\Desktop\data_automation\app\main.py:38: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("shutdown")
+
+tests/test_api_endpoints.py::test_event_verification_signature
+  C:\Users\phlspxuser\miniconda3\Lib\site-packages\httpx\_models.py:408: DeprecationWarning: Use 'content=<...>' to upload raw bytes/text content.
+    headers, stream = encode_request(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 17 warnings in 1.33s

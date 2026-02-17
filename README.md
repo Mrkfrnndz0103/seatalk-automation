@@ -71,3 +71,4 @@ Expected response: HTTP `200` with body `{"status":"alive"}`.
 - Render config: `render.yaml` (native Python runtime)
 - Python runtime pin: `.python-version` + `PYTHON_VERSION=3.12.9`
 - Cloudflare + Render guide: `docs/deployment_cloudflare_render.md`
+- Test execution guide: `docs/testing_guide.md`

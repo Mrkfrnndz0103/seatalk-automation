@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -27,17 +28,20 @@ seatalk_client = SeaTalkClient(settings)
 workflow_router = WorkflowRouter(settings)
 stuckup_monitor = StuckupMonitor(settings)
 
-app = FastAPI(title="SeaTalk Workflow Automation Server", version="0.1.0")
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     stuckup_monitor.start()
+    try:
+        yield
+    finally:
+        await stuckup_monitor.stop()
 
 
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    await stuckup_monitor.stop()
+app = FastAPI(
+    title="SeaTalk Workflow Automation Server",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 
 @app.get("/health")
