@@ -23,11 +23,14 @@ class StuckupService:
         if not self._settings.stuckup_target_spreadsheet_id:
             return self._error("STUCKUP_TARGET_SPREADSHEET_ID is not configured")
 
-        values = self._google_sheets.read_values(
-            spreadsheet_id=self._settings.stuckup_source_spreadsheet_id,
-            worksheet_name=self._settings.stuckup_source_worksheet_name,
-            cell_range=self._settings.stuckup_source_range,
-        )
+        try:
+            values = self._google_sheets.read_values(
+                spreadsheet_id=self._settings.stuckup_source_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_source_worksheet_name,
+                cell_range=self._settings.stuckup_source_range,
+            )
+        except Exception as exc:
+            return self._error(f"google source read failed: {exc}")
         if not values:
             return self._error("source sheet is empty")
 
@@ -73,11 +76,18 @@ class StuckupService:
         for row in supabase_rows:
             export_values.append([str(row.get(column, "")) for column in selected_normalized_headers])
 
-        self._google_sheets.overwrite_values(
-            spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-            worksheet_name=self._settings.stuckup_target_worksheet_name,
-            values=export_values,
-        )
+        try:
+            self._google_sheets.overwrite_values(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                values=export_values,
+            )
+        except Exception as exc:
+            return self._error(
+                f"google target write failed: {exc}",
+                source_rows=len(source_records),
+                upserted_rows=len(source_records),
+            )
 
         return StuckupSyncResult(
             status="ok",

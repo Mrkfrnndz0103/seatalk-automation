@@ -1,45 +1,99 @@
-# Deploy with Render + Cloudflare
+# Cloudflare Implementation Guide (SeaTalk Bot + Render)
 
-## 1. Render service
+Use Cloudflare as the edge layer in front of your Render-hosted SeaTalk bot server.
 
-1. Push this repo to GitHub.
-2. Create a Render Web Service using `render.yaml`.
-3. In Render service settings, set Python version to `3.12.9`.
-4. Ensure these are present in the repo root:
-   - `.python-version` with `3.12.9`
-   - `render.yaml` with `PYTHON_VERSION=3.12.9`
-5. Clear build cache in Render and redeploy.
-6. Set required secrets in Render environment variables:
-   - `SEATALK_APP_ID`
-   - `SEATALK_APP_SECRET`
-   - `SEATALK_SIGNING_SECRET`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `STUCKUP_SOURCE_SPREADSHEET_ID`
-   - `STUCKUP_TARGET_SPREADSHEET_ID`
-7. Upload your Google service account JSON and mount it at runtime, then set:
-   - `GOOGLE_SERVICE_ACCOUNT_FILE` (example: `/etc/secrets/google-service-account.json`)
+## 1. Purpose of Cloudflare
 
-## 2. Cloudflare in front of Render
+Cloudflare is used for:
+- Custom domain (for example, `bot.yourdomain.com`)
+- HTTPS and SSL/TLS management
+- Security controls (WAF and rate limiting)
+- Stable callback URL even if backend hosting changes later
 
-1. In Cloudflare DNS, create `CNAME`:
-   - `bot.yourdomain.com` -> `your-render-service.onrender.com`
-2. Enable proxy (orange cloud).
-3. SSL/TLS mode: `Full`.
-4. Optional WAF rule: allow `POST /callbacks/seatalk` and rate-limit unknown paths.
+Cloudflare does not run this Python app. Render runs `FastAPI`.
 
-## 3. SeaTalk callback URL
+## 2. Prerequisites
 
-Set callback URL in SeaTalk Open Platform to:
+1. Render service is deployed and healthy:
+   - `https://<your-render-service>.onrender.com/health`
+2. Domain is added to Cloudflare and status is `Active`.
+3. SeaTalk callback endpoint in this app is:
+   - `/callbacks/seatalk`
 
-`https://bot.yourdomain.com/callbacks/seatalk`
+## 3. Cloudflare DNS Setup
 
-## 4. Connectivity checks
+1. Open Cloudflare Dashboard -> `DNS`.
+2. Click `Add record`.
+3. Create record:
+   - Type: `CNAME`
+   - Name: `bot`
+   - Target: `<your-render-service>.onrender.com`
+   - Proxy status: `Proxied` (orange cloud)
+4. Save record.
 
-- Render health:
-  - `GET https://bot.yourdomain.com/health`
-- SeaTalk event verification should return `seatalk_challenge` in under 5 seconds.
+Your callback base URL becomes:
+- `https://bot.yourdomain.com`
 
-## 5. Google permissions
+## 4. SSL/TLS Setup
 
-- Share source and target Google Sheets with service account email as Editor.
+1. Go to `SSL/TLS` -> `Overview`.
+2. Set mode to `Full`.
+3. Go to `SSL/TLS` -> `Edge Certificates`.
+4. Enable `Always Use HTTPS`.
+
+## 5. Security Rules (Free Tier)
+
+1. Go to `Security` -> `WAF` -> `Custom rules`.
+2. Create an allow rule for SeaTalk callback:
+   - URI path equals `/callbacks/seatalk`
+   - HTTP method equals `POST`
+3. Create a rate-limiting rule for `/callbacks/seatalk` to protect abuse.
+4. Optionally challenge/block unexpected methods for callback path.
+
+## 6. Render Compatibility Checklist
+
+1. Render runtime must be Python `3.12.9`.
+2. Keep these runtime pin files in repo root:
+   - `runtime.txt`
+   - `.python-version`
+3. Keep `PYTHON_VERSION=3.12.9` in `render.yaml`.
+4. If Render still uses Python 3.14:
+   - Set Python version in dashboard to `3.12.9`
+   - Clear build cache
+   - Redeploy
+
+## 7. SeaTalk Callback Configuration
+
+In SeaTalk Open Platform, set callback URL to:
+- `https://bot.yourdomain.com/callbacks/seatalk`
+
+After saving, SeaTalk sends verification event. Your app must respond quickly.
+
+## 8. Validation Steps
+
+1. Open:
+   - `https://bot.yourdomain.com/health`
+2. Confirm HTTP 200 response.
+3. Confirm SeaTalk callback verification passes.
+4. Send command in SeaTalk:
+   - `/stuckup sync`
+5. Check Render logs for incoming event and workflow execution.
+
+## 9. Free-Tier Notes
+
+1. Cloudflare Free is sufficient for DNS/proxy/basic WAF setup.
+2. Render Free may sleep on inactivity.
+3. Cold starts can delay SeaTalk callbacks.
+4. Optional mitigation: periodic health ping to `/health`.
+
+## 10. Quick Troubleshooting
+
+1. SeaTalk verification failed:
+   - Confirm callback URL path is exactly `/callbacks/seatalk`
+   - Confirm `SEATALK_SIGNING_SECRET` matches SeaTalk app setting
+2. 5xx from callback:
+   - Check Render logs
+   - Confirm env vars are set
+3. Python build fails with `pydantic-core`/`maturin`:
+   - Ensure Python `3.12.9`
+   - Clear build cache and redeploy
