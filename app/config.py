@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     stuckup_poll_interval_seconds: int = Field(default=60, alias="STUCKUP_POLL_INTERVAL_SECONDS")
     stuckup_sync_mode: str = Field(default="scheduled", alias="STUCKUP_SYNC_MODE")
     stuckup_scheduled_sync_interval_seconds: int = Field(
-        default=300,
+        default=1800,
         alias="STUCKUP_SCHEDULED_SYNC_INTERVAL_SECONDS",
     )
     stuckup_reference_row: int = Field(default=2, alias="STUCKUP_REFERENCE_ROW")

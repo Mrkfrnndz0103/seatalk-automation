@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class StuckupMonitor:
+    _SCHEDULED_SYNC_TS_STATE_KEY = "stuckup_last_scheduled_sync_ts"
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._sheets = GoogleSheetsClient(settings)
@@ -25,6 +27,7 @@ class StuckupMonitor:
         self._stop_event = asyncio.Event()
         self._state_path = Path(settings.stuckup_state_path)
         self._state_path.parent.mkdir(parents=True, exist_ok=True)
+        self._scheduled_state_path = self._state_path.with_name("scheduled_sync_state.txt")
         self._last_scheduled_sync_ts: float | None = None
         self._last_status: dict[str, str | int | None] = {
             "monitor": "idle",
@@ -54,6 +57,7 @@ class StuckupMonitor:
             return
         if self._task and not self._task.done():
             return
+        self._last_scheduled_sync_ts = self._load_last_scheduled_sync_ts()
         self._stop_event.clear()
         self._task = asyncio.create_task(self._run_loop())
         logger.info("stuckup monitor started")
@@ -92,6 +96,7 @@ class StuckupMonitor:
             return
 
         self._last_scheduled_sync_ts = now_ts
+        self._save_last_scheduled_sync_ts(now_ts)
         self._last_status["last_scheduled_sync_at"] = format_local_timestamp(self._settings)
         logger.info("stuckup scheduled sync triggered")
         result = self._service.sync_source_sheet_to_supabase()
@@ -173,6 +178,34 @@ class StuckupMonitor:
         start_col = cols[0]
         end_col = cols[1] if len(cols) > 1 else cols[0]
         return f"{start_col}{row}:{end_col}{row}"
+
+    def _load_last_scheduled_sync_ts(self) -> float | None:
+        result, value = self._supabase.get_state(self._SCHEDULED_SYNC_TS_STATE_KEY)
+        if result.status == "ok" and value:
+            try:
+                return float(value)
+            except ValueError:
+                logger.warning("invalid scheduled sync timestamp in supabase state: %s", value)
+        elif result.status == "error":
+            logger.warning("fallback to local scheduled sync state file due to supabase read error: %s", result.message)
+
+        if not self._scheduled_state_path.exists():
+            return None
+        try:
+            value = self._scheduled_state_path.read_text(encoding="utf-8").strip()
+            return float(value) if value else None
+        except ValueError:
+            logger.warning("invalid scheduled sync timestamp in local state file")
+            return None
+
+    def _save_last_scheduled_sync_ts(self, value: float) -> None:
+        text = str(value)
+        result = self._supabase.set_state(self._SCHEDULED_SYNC_TS_STATE_KEY, text)
+        if result.status == "ok":
+            return
+        if result.status == "error":
+            logger.warning("fallback to local scheduled sync state file due to supabase write error: %s", result.message)
+        self._scheduled_state_path.write_text(text, encoding="utf-8")
 
     def get_status(self) -> dict[str, str | int | bool | None]:
         return {

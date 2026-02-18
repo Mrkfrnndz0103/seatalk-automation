@@ -43,11 +43,24 @@ class SupabaseSink:
             return SinkResult("supabase", "skipped", "not configured"), []
 
         try:
-            query = self._client.table(self._table).select("*").limit(50000)
-            if order_by:
-                query = query.order(order_by)
-            data = query.execute().data or []
-            return SinkResult("supabase", "ok", f"fetched {len(data)} rows"), data
+            page_size = 1000
+            offset = 0
+            rows: list[dict[str, Any]] = []
+
+            while True:
+                query = self._client.table(self._table).select("*").range(offset, offset + page_size - 1)
+                if order_by:
+                    query = query.order(order_by)
+
+                page = query.execute().data or []
+                rows.extend(page)
+
+                if len(page) < page_size:
+                    break
+
+                offset += page_size
+
+            return SinkResult("supabase", "ok", f"fetched {len(rows)} rows"), rows
         except Exception as exc:
             logger.exception("failed to fetch rows from supabase")
             return SinkResult("supabase", "error", str(exc)), []
