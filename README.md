@@ -58,6 +58,7 @@ Default destination columns retained:
 - `status_timestamp`
 - `ageing_bucket`
 - `hub_dest_station_name`
+- `next_destination_name`
 - `hub_region`
 - `cluster_name`
 - `fms_last_update_time`
@@ -80,7 +81,7 @@ Key settings:
 - `STUCKUP_SCHEDULED_SYNC_INTERVAL_SECONDS=1800`
 - `STUCKUP_REFERENCE_ROW=2`
 - `STUCKUP_FILTER_STATUS_VALUES=SOC_Packed,SOC_Packing,SOC_Staging,SOC_LHTransported,SOC_LHTransporting`
-- `STUCKUP_EXPORT_COLUMNS=journey_type,spx_station_site,shipment_id,status_group,status_desc,status_timestamp,ageing_bucket,hub_dest_station_name,hub_region,cluster_name,fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator`
+- `STUCKUP_EXPORT_COLUMNS=journey_type,spx_station_site,shipment_id,status_group,status_desc,status_timestamp,ageing_bucket,hub_dest_station_name,next_destination_name,hub_region,cluster_name,fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator`
 - `SUPABASE_STUCKUP_STATE_TABLE=stuckup_sync_state`
 - `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
 - `SUPABASE_STUCKUP_DATA_HASH_KEY=stuckup_data_hash`

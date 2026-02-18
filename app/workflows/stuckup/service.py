@@ -2,10 +2,11 @@ import json
 import re
 import hashlib
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
-from app.config import Settings
+from app.config import STUCKUP_ALLOWED_EXPORT_COLUMNS, Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
 from app.time_utils import format_local_timestamp
@@ -72,9 +73,8 @@ class StuckupService:
                 )
 
         source_to_normalized = {source_headers[i]: normalized_headers[i] for i in range(len(source_headers))}
-        requested_export_headers = [v.strip() for v in self._settings.stuckup_export_columns.split(",") if v.strip()]
-        if not requested_export_headers:
-            return self._error("STUCKUP_EXPORT_COLUMNS is empty", source_rows=len(source_records))
+        # Enforce a strict export whitelist and order.
+        requested_export_headers = list(STUCKUP_ALLOWED_EXPORT_COLUMNS)
 
         selected_source_headers: list[str] = []
         selected_normalized_headers: list[str] = []
@@ -120,10 +120,11 @@ class StuckupService:
             )
 
             # 2) Write data table in columns C onward
+            last_export_col = self._column_letter(len(selected_source_headers))
             self._google_sheets.clear_range(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
-                cell_range="A:P",
+                cell_range=f"A:{last_export_col}",
             )
             required_rows = max(len(export_values), 1)
             required_columns = max(len(export_values[0]) if export_values else 1, 1)
@@ -148,31 +149,8 @@ class StuckupService:
                 required_columns,
             )
 
-            # 3) Read dashboard block and write sentence-only summary with action taken.
-            dashboard_values = self._google_sheets.read_values(
-                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name="dashboard_summary",
-                cell_range="B10:AB43",
-            )
-            summary_lines = self._build_dashboard_summary_from_block(dashboard_values)
-            summary_paragraph = self._format_summary_paragraph(summary_lines)
-            self._google_sheets.ensure_grid_size(
-                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name="dashboard_summary",
-                min_rows=8,
-                min_columns=28,
-            )
-            self._google_sheets.clear_range(
-                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name="dashboard_summary",
-                cell_range="B4:AB8",
-            )
-            self._google_sheets.update_values(
-                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name="dashboard_summary",
-                start_cell="B4",
-                values=[[summary_paragraph]],
-            )
+            # 3) Refresh dashboard summary paragraph.
+            self.refresh_dashboard_summary_only()
         except Exception as exc:
             return self._error(
                 f"google target write failed: {exc}",
@@ -189,6 +167,28 @@ class StuckupService:
             upserted_rows=len(source_records) if is_updated else 0,
             exported_rows=max(len(export_values) - 1, 0),
             exported_columns=len(selected_source_headers),
+        )
+
+    def refresh_dashboard_summary_only(self) -> None:
+        dashboard_values = self._read_dashboard_block_stable()
+        summary_lines = self._build_dashboard_summary_from_block(dashboard_values)
+        summary_paragraph = self._format_summary_paragraph(summary_lines)
+        self._google_sheets.ensure_grid_size(
+            spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+            worksheet_name="dashboard_summary",
+            min_rows=8,
+            min_columns=28,
+        )
+        self._google_sheets.clear_range(
+            spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+            worksheet_name="dashboard_summary",
+            cell_range="B4:AB8",
+        )
+        self._google_sheets.update_values(
+            spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+            worksheet_name="dashboard_summary",
+            start_cell="B4",
+            values=[[summary_paragraph]],
         )
 
     @staticmethod
@@ -283,7 +283,7 @@ class StuckupService:
         sentence_2 = f"The highest contributing regions by Total L7D are {top_regions_text}."
         sentence_3 = f"The most affected clusters and hubs are {top_clusters_text}; key hubs include {top_hubs_text}."
         sentence_4 = (
-            f"Action Taken: Prioritized clearance for {lead_cluster} and coordinated immediate follow-up with "
+            f"Action Taken: Prioritized the dispatch for {lead_cluster} and coordinated immediate follow-up with "
             f"{lead_hub_text} to reduce ageing backlog before the next validation run."
         )
         return [sentence_1, sentence_2, sentence_3, sentence_4]
@@ -333,6 +333,50 @@ class StuckupService:
             return float(cleaned)
         except ValueError:
             return None
+
+    @staticmethod
+    def _column_letter(index: int) -> str:
+        if index < 1:
+            raise ValueError("column index must be >= 1")
+        letters = []
+        value = index
+        while value > 0:
+            value, remainder = divmod(value - 1, 26)
+            letters.append(chr(65 + remainder))
+        return "".join(reversed(letters))
+
+    def _read_dashboard_block_stable(self) -> list[list[str]]:
+        spreadsheet_id = self._settings.stuckup_target_spreadsheet_id
+        worksheet_name = "dashboard_summary"
+        cell_range = "B10:AB43"
+
+        current = self._google_sheets.read_values(
+            spreadsheet_id=spreadsheet_id,
+            worksheet_name=worksheet_name,
+            cell_range=cell_range,
+        )
+        current_fingerprint = self._fingerprint_block(current)
+
+        # Formula-driven dashboards can lag a few seconds after raw table updates.
+        # Read a few times and use the stabilized snapshot.
+        for _ in range(4):
+            time.sleep(2)
+            nxt = self._google_sheets.read_values(
+                spreadsheet_id=spreadsheet_id,
+                worksheet_name=worksheet_name,
+                cell_range=cell_range,
+            )
+            nxt_fingerprint = self._fingerprint_block(nxt)
+            if nxt_fingerprint == current_fingerprint:
+                return nxt
+            current = nxt
+            current_fingerprint = nxt_fingerprint
+
+        return current
+
+    @staticmethod
+    def _fingerprint_block(values: list[list[str]]) -> str:
+        return hashlib.sha256(json.dumps(values, ensure_ascii=True, sort_keys=False).encode("utf-8")).hexdigest()
 
     def _write_backup(self, rows: list[dict[str, str]]) -> None:
         with self._backup_path.open("w", encoding="utf-8") as f:

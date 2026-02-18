@@ -34,6 +34,9 @@ class StuckupMonitor:
             "last_check_at": None,
             "last_change_detected_at": None,
             "last_scheduled_sync_at": None,
+            "last_summary_refresh_at": None,
+            "last_summary_refresh_status": None,
+            "last_summary_refresh_message": None,
             "last_sync_status": None,
             "last_sync_message": None,
             "last_source_rows": 0,
@@ -78,6 +81,7 @@ class StuckupMonitor:
                     await self._check_reference_row_and_sync()
                 if mode in {"scheduled", "both"}:
                     await self._check_scheduled_sync()
+                await self._refresh_dashboard_summary_only()
             except Exception:
                 logger.exception("stuckup monitor iteration failed")
 
@@ -235,3 +239,15 @@ class StuckupMonitor:
         self._last_status["last_upserted_rows"] = upserted_rows
         self._last_status["last_exported_rows"] = exported_rows
         self._last_status["last_exported_columns"] = exported_columns
+
+    async def _refresh_dashboard_summary_only(self) -> None:
+        try:
+            self._service.refresh_dashboard_summary_only()
+            self._last_status["last_summary_refresh_at"] = format_local_timestamp(self._settings)
+            self._last_status["last_summary_refresh_status"] = "ok"
+            self._last_status["last_summary_refresh_message"] = "dashboard summary refreshed"
+        except Exception as exc:
+            logger.exception("dashboard summary refresh failed")
+            self._last_status["last_summary_refresh_at"] = format_local_timestamp(self._settings)
+            self._last_status["last_summary_refresh_status"] = "error"
+            self._last_status["last_summary_refresh_message"] = str(exc)
