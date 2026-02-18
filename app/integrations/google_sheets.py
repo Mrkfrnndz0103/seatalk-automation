@@ -45,13 +45,77 @@ class GoogleSheetsClient:
             body={},
         ).execute()
 
-    def update_values(self, spreadsheet_id: str, worksheet_name: str, start_cell: str, values: list[list[str]]) -> None:
+    def update_values(
+        self,
+        spreadsheet_id: str,
+        worksheet_name: str,
+        start_cell: str,
+        values: list[list[str]],
+    ) -> dict[str, Any]:
         service = self._build_service()
-        service.spreadsheets().values().update(
+        return (
+            service.spreadsheets()
+            .values()
+            .update(
             spreadsheetId=spreadsheet_id,
             range=self._sheet_range(worksheet_name, start_cell),
             valueInputOption="USER_ENTERED",
             body={"values": values},
+            )
+            .execute()
+        )
+
+    def ensure_grid_size(
+        self,
+        spreadsheet_id: str,
+        worksheet_name: str,
+        min_rows: int,
+        min_columns: int,
+    ) -> None:
+        service = self._build_service()
+        metadata = service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id,
+            includeGridData=False,
+        ).execute()
+
+        target_props: dict[str, Any] | None = None
+        for sheet in metadata.get("sheets", []):
+            props = sheet.get("properties", {})
+            if props.get("title") == worksheet_name:
+                target_props = props
+                break
+
+        if not target_props:
+            raise ValueError(f"worksheet '{worksheet_name}' not found")
+
+        grid = target_props.get("gridProperties", {})
+        current_rows = int(grid.get("rowCount", 0))
+        current_columns = int(grid.get("columnCount", 0))
+        update_fields: list[str] = []
+        properties: dict[str, Any] = {"sheetId": target_props["sheetId"], "gridProperties": {}}
+
+        if current_rows < min_rows:
+            properties["gridProperties"]["rowCount"] = min_rows
+            update_fields.append("gridProperties.rowCount")
+        if current_columns < min_columns:
+            properties["gridProperties"]["columnCount"] = min_columns
+            update_fields.append("gridProperties.columnCount")
+
+        if not update_fields:
+            return
+
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={
+                "requests": [
+                    {
+                        "updateSheetProperties": {
+                            "properties": properties,
+                            "fields": ",".join(update_fields),
+                        }
+                    }
+                ]
+            },
         ).execute()
 
     @staticmethod

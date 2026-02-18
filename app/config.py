@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     seatalk_verify_signature: bool = Field(default=True, alias="SEATALK_VERIFY_SIGNATURE")
     seatalk_api_base_url: str = Field(default="https://openapi.seatalk.io", alias="SEATALK_API_BASE_URL")
 
+    openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
+    openrouter_model: str = Field(default="", alias="OPENROUTER_MODEL")
+    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", alias="OPENROUTER_BASE_URL")
+
     google_service_account_file: str = Field(default="", alias="GOOGLE_SERVICE_ACCOUNT_FILE")
     stuckup_source_spreadsheet_id: str = Field(default="", alias="STUCKUP_SOURCE_SPREADSHEET_ID")
     stuckup_source_worksheet_name: str = Field(default="Source", alias="STUCKUP_SOURCE_WORKSHEET_NAME")

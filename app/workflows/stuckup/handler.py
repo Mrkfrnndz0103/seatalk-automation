@@ -21,21 +21,17 @@ class StuckupWorkflow:
         return WorkflowResult(
             handled=True,
             response_text=(
-                "Manual stuckup trigger is disabled.\n"
-                "Stuckup auto-sync runs when source sheet reference row changes.\n"
-                "Use `/stuckup help` for config details."
+                "I can't run a manual stuckup sync from chat right now.\n"
+                "I run stuckup sync automatically in the background.\n"
+                "Type `/stuckup help` if you want the setup details."
             ),
         )
 
     def _help_text(self) -> str:
         return (
-            "Stuckup commands:\n"
-            "`/stuckup help` - Show workflow settings.\n"
-            "Manual `/stuckup sync` is disabled.\n"
-            "Auto-sync mode: `STUCKUP_SYNC_MODE` (`scheduled`, `row_change`, or `both`).\n"
-            "Scheduled interval: `STUCKUP_SCHEDULED_SYNC_INTERVAL_SECONDS`.\n"
-            "Row-change trigger uses `STUCKUP_REFERENCE_ROW` (default 2) when enabled.\n"
-            "Poll interval: `STUCKUP_POLL_INTERVAL_SECONDS`.\n"
-            "Filter statuses: `STUCKUP_FILTER_STATUS_VALUES`.\n"
-            "Export columns: `STUCKUP_EXPORT_COLUMNS`."
+            "I handle stuckup sync automatically.\n"
+            "Manual `/stuckup sync` is currently turned off.\n"
+            "I can run on a schedule, on reference-row changes, or both.\n"
+            "The behavior is controlled by your STUCKUP settings in `.env`.\n"
+            "You can type `/stuckup help` anytime to see this guide again."
         )

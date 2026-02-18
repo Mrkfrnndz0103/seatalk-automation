@@ -9,6 +9,6 @@ class BacklogsWorkflow:
         if any(text.startswith(cmd) for cmd in self.commands):
             return WorkflowResult(
                 handled=True,
-                response_text="Backlogs workflow is scaffolded but not implemented yet.",
+                response_text="I can't run the backlogs workflow yet. It's still being built.",
             )
         return WorkflowResult(handled=False)

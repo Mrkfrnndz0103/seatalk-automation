@@ -148,8 +148,7 @@ async def _handle_user_enter_chatroom_with_bot(payload: CallbackEnvelope) -> Non
     await seatalk_client.send_text_message(
         employee_code=event.employee_code,
         content=(
-            "Bot is online.\n"
-            "Stuckup workflow is auto-triggered when source sheet reference row changes."
+            "Hello! 👋 How can I assist you today?"
         ),
     )
 

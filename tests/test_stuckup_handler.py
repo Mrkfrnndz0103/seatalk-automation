@@ -22,7 +22,7 @@ def test_stuckup_help_message() -> None:
     )
     assert result.handled
     assert result.response_text is not None
-    assert "Manual `/stuckup sync` is disabled." in result.response_text
+    assert "Manual `/stuckup sync` is currently turned off." in result.response_text
 
 
 def test_stuckup_manual_sync_disabled() -> None:
@@ -37,4 +37,4 @@ def test_stuckup_manual_sync_disabled() -> None:
     )
     assert result.handled
     assert result.response_text is not None
-    assert "Manual stuckup trigger is disabled." in result.response_text
+    assert "I can't run a manual stuckup sync from chat right now." in result.response_text

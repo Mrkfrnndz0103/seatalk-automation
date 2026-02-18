@@ -9,6 +9,6 @@ class ShortlandedWorkflow:
         if any(text.startswith(cmd) for cmd in self.commands):
             return WorkflowResult(
                 handled=True,
-                response_text="Shortlanded workflow is scaffolded but not implemented yet.",
+                response_text="I can't run the shortlanded workflow yet. It's still being built.",
             )
         return WorkflowResult(handled=False)

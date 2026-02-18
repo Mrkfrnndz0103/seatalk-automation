@@ -24,7 +24,7 @@ class WorkflowRouter:
         return WorkflowResult(
             handled=False,
             response_text=(
-                "Unknown command. Available workflows: "
-                "`/stuckup`, `/backlogs`, `/shortlanded`, `/lh_request`."
+                "I didn't catch that command.\n"
+                "You can chat with me using `/stuckup`, `/backlogs`, `/shortlanded`, or `/lh_request`."
             ),
         )

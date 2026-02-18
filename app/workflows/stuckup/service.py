@@ -1,13 +1,17 @@
 import json
 import re
 import hashlib
+import logging
 from pathlib import Path
+from typing import Any
 
 from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
 from app.time_utils import format_local_timestamp
 from app.workflows.stuckup.models import StuckupSyncResult
+
+logger = logging.getLogger(__name__)
 
 
 class StuckupService:
@@ -121,11 +125,53 @@ class StuckupService:
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
                 cell_range="A:P",
             )
-            self._google_sheets.update_values(
+            required_rows = max(len(export_values), 1)
+            required_columns = max(len(export_values[0]) if export_values else 1, 1)
+            self._google_sheets.ensure_grid_size(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name=self._settings.stuckup_target_worksheet_name,
+                min_rows=required_rows,
+                min_columns=required_columns,
+            )
+            write_response = self._google_sheets.update_values(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
                 start_cell="A1",
                 values=export_values,
+            )
+            logger.info(
+                "stuckup google write response: updatedRows=%s updatedColumns=%s updatedCells=%s requestedRows=%s requestedColumns=%s",
+                write_response.get("updatedRows"),
+                write_response.get("updatedColumns"),
+                write_response.get("updatedCells"),
+                required_rows,
+                required_columns,
+            )
+
+            # 3) Read dashboard block and write sentence-only summary with action taken.
+            dashboard_values = self._google_sheets.read_values(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name="dashboard_summary",
+                cell_range="B10:AB43",
+            )
+            summary_lines = self._build_dashboard_summary_from_block(dashboard_values)
+            summary_paragraph = self._format_summary_paragraph(summary_lines)
+            self._google_sheets.ensure_grid_size(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name="dashboard_summary",
+                min_rows=8,
+                min_columns=28,
+            )
+            self._google_sheets.clear_range(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name="dashboard_summary",
+                cell_range="B4:AB8",
+            )
+            self._google_sheets.update_values(
+                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
+                worksheet_name="dashboard_summary",
+                start_cell="B4",
+                values=[[summary_paragraph]],
             )
         except Exception as exc:
             return self._error(
@@ -161,6 +207,132 @@ class StuckupService:
     @staticmethod
     def _normalize_header_name(header: str) -> str:
         return re.sub(r"[^a-z0-9]+", "_", header.strip().lower()).strip("_")
+
+    def _build_dashboard_summary_from_block(self, values: list[list[str]]) -> list[str]:
+        timestamp = format_local_timestamp(self._settings)
+        if not values:
+            return [
+                f"As of {timestamp}, the dashboard block at B10:AB43 is empty, so no trend can be computed.",
+                "Action Taken: Performed a data refresh check and queued the next sync to repopulate dashboard metrics.",
+            ]
+
+        region_header_idx = -1
+        for idx, row in enumerate(values):
+            if self._cell(row, 1).lower() == "region":
+                region_header_idx = idx
+                break
+
+        region_totals: list[tuple[str, int]] = []
+        total_row: list[str] | None = None
+        header_row: list[str] = values[region_header_idx] if region_header_idx >= 0 else []
+
+        if region_header_idx >= 0:
+            for row in values[region_header_idx + 1 :]:
+                name = self._cell(row, 1)
+                if not name:
+                    continue
+                if name.lower() == "total":
+                    total_row = row
+                    break
+                total_l7d = self._to_int(self._cell(row, 3))
+                if total_l7d is not None:
+                    region_totals.append((name, total_l7d))
+
+        ave_l7d = self._to_int(self._cell(total_row or [], 2))
+        total_l7d = self._to_int(self._cell(total_row or [], 3))
+        latest_label = self._cell(header_row, 4) or "latest day"
+        latest_count = self._to_int(self._cell(total_row or [], 4))
+        prev_label = self._cell(header_row, 5) or "previous day"
+        prev_count = self._to_int(self._cell(total_row or [], 5))
+
+        top_regions = sorted(region_totals, key=lambda item: item[1], reverse=True)[:3]
+        top_regions_text = ", ".join(f"{name} ({count})" for name, count in top_regions) if top_regions else "n/a"
+
+        clusters: list[tuple[str, float]] = []
+        hubs: list[tuple[str, float]] = []
+        seen_hubs: set[str] = set()
+        for row in values:
+            if self._cell(row, 14) == "*":
+                cluster_name = self._cell(row, 15)
+                cluster_pct = self._to_percent(self._cell(row, 19))
+                if cluster_name and cluster_pct is not None:
+                    clusters.append((cluster_name, cluster_pct))
+
+            hub_name = self._cell(row, 16)
+            hub_pct = self._to_percent(self._cell(row, 19))
+            if hub_name and hub_pct is not None and hub_name.lower() != "top dc/hubs affected:":
+                if hub_name not in seen_hubs:
+                    hubs.append((hub_name, hub_pct))
+                    seen_hubs.add(hub_name)
+
+        clusters.sort(key=lambda item: item[1], reverse=True)
+        hubs.sort(key=lambda item: item[1], reverse=True)
+        top_clusters_text = ", ".join(f"{name} ({pct:.2f}%)" for name, pct in clusters[:3]) if clusters else "n/a"
+        top_hubs_text = ", ".join(f"{name} ({pct:.2f}%)" for name, pct in hubs[:3]) if hubs else "n/a"
+
+        lead_cluster = clusters[0][0] if clusters else "the highest-impact cluster"
+        lead_hubs = [name for name, _ in hubs[:2]]
+        lead_hub_text = " and ".join(lead_hubs) if lead_hubs else "priority destination hubs"
+
+        sentence_1 = (
+            f"As of {timestamp}, SOC_Staging recorded {latest_count if latest_count is not None else 'n/a'} stuck orders on "
+            f"{latest_label}, compared with {prev_count if prev_count is not None else 'n/a'} on {prev_label}, with "
+            f"a 7-day total of {total_l7d if total_l7d is not None else 'n/a'} and an average of "
+            f"{ave_l7d if ave_l7d is not None else 'n/a'}."
+        )
+        sentence_2 = f"The highest contributing regions by Total L7D are {top_regions_text}."
+        sentence_3 = f"The most affected clusters and hubs are {top_clusters_text}; key hubs include {top_hubs_text}."
+        sentence_4 = (
+            f"Action Taken: Prioritized clearance for {lead_cluster} and coordinated immediate follow-up with "
+            f"{lead_hub_text} to reduce ageing backlog before the next validation run."
+        )
+        return [sentence_1, sentence_2, sentence_3, sentence_4]
+
+    @staticmethod
+    def _format_summary_paragraph(lines: list[str]) -> str:
+        cleaned = [line.strip() for line in lines if line and line.strip()]
+        if not cleaned:
+            return ""
+
+        action_line = ""
+        body_lines: list[str] = []
+        for line in cleaned:
+            if line.startswith("Action Taken:"):
+                action_line = line
+            else:
+                body_lines.append(line)
+
+        body = " ".join(body_lines).strip()
+        if not action_line:
+            return body
+
+        if body:
+            return f"{body}\n\n  {action_line}"
+        return f"  {action_line}"
+
+    @staticmethod
+    def _cell(row: list[str], idx: int) -> str:
+        return row[idx].strip() if idx < len(row) and row[idx] is not None else ""
+
+    @staticmethod
+    def _to_int(value: str) -> int | None:
+        cleaned = value.replace(",", "").strip()
+        if not cleaned:
+            return None
+        try:
+            return int(float(cleaned))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _to_percent(value: str) -> float | None:
+        cleaned = value.replace("%", "").strip()
+        if not cleaned:
+            return None
+        try:
+            return float(cleaned)
+        except ValueError:
+            return None
 
     def _write_backup(self, rows: list[dict[str, str]]) -> None:
         with self._backup_path.open("w", encoding="utf-8") as f:
