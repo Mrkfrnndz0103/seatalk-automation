@@ -94,9 +94,6 @@ class SeaTalkClient:
         *,
         thread_id: str | None = None,
     ) -> dict[str, Any]:
-        token = await self.get_token()
-        url = f"{self._settings.seatalk_api_base_url}/messaging/v2/group_chat"
-
         message: dict[str, Any] = {
             "tag": "text",
             "text": {
@@ -104,6 +101,33 @@ class SeaTalkClient:
                 "content": content,
             },
         }
+        return await self.send_group_message(group_id=group_id, message=message, thread_id=thread_id)
+
+    async def send_group_image_message(
+        self,
+        group_id: str,
+        image_base64: str,
+        *,
+        thread_id: str | None = None,
+    ) -> dict[str, Any]:
+        message: dict[str, Any] = {
+            "tag": "image",
+            "image": {
+                "content": image_base64,
+            },
+        }
+        return await self.send_group_message(group_id=group_id, message=message, thread_id=thread_id)
+
+    async def send_group_message(
+        self,
+        group_id: str,
+        message: dict[str, Any],
+        *,
+        thread_id: str | None = None,
+    ) -> dict[str, Any]:
+        token = await self.get_token()
+        url = f"{self._settings.seatalk_api_base_url}/messaging/v2/group_chat"
+
         if thread_id:
             message["thread_id"] = thread_id
 

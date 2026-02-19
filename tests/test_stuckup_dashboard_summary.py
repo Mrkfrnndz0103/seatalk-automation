@@ -1,3 +1,7 @@
+import base64
+
+import pytest
+
 from app.config import Settings
 from app.workflows.stuckup.service import StuckupService
 
@@ -114,3 +118,26 @@ def test_refresh_dashboard_summary_writes_to_merged_summary_block_top_left() -> 
     assert fake_sheets.update_calls
     assert fake_sheets.clear_calls[-1]["cell_range"] == "C4:AA9"
     assert fake_sheets.update_calls[-1]["start_cell"] == "C4"
+
+
+class _FakeCaptureSheets:
+    def read_values(self, spreadsheet_id: str, worksheet_name: str, cell_range: str) -> list[list[str]]:
+        return [
+            ["Region", "Total L7D", "18-Feb"],
+            ["InterSOC", "226", "0"],
+            ["SOL-IIS", "355", "0"],
+        ]
+
+
+def test_capture_dashboard_range_png_base64_returns_png(monkeypatch) -> None:
+    pytest.importorskip("PIL")
+    service = StuckupService(_settings())
+    service._google_sheets = _FakeCaptureSheets()  # type: ignore[assignment]
+
+    import app.workflows.stuckup.service as service_module
+
+    monkeypatch.setattr(service_module.time, "sleep", lambda _: None)
+    encoded = service.capture_dashboard_range_png_base64()
+    image_bytes = base64.b64decode(encoded)
+
+    assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")

@@ -88,6 +88,16 @@ Key settings:
 - `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
 - `SUPABASE_STUCKUP_DATA_HASH_KEY=stuckup_data_hash`
 - `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt` (fallback only)
+- `STUCKUP_DASHBOARD_ALERT_ENABLED=true`
+- `STUCKUP_DASHBOARD_ALERT_SYSTEM_WEBHOOK_URL=<seatalk_system_account_webhook_url>`
+- `STUCKUP_DASHBOARD_ALERT_TRIGGER_WORKSHEET_NAME=config`
+- `STUCKUP_DASHBOARD_ALERT_TRIGGER_CELL=B2`
+- `STUCKUP_DASHBOARD_ALERT_TRIGGER_VALUE=Updated`
+- `STUCKUP_DASHBOARD_ALERT_TEXT_TEMPLATE=Outbound Stuck at SOC_Staging Stuckup Validation Report {date}`
+- `STUCKUP_DASHBOARD_ALERT_AT_ALL=true`
+- `STUCKUP_DASHBOARD_CAPTURE_WORKSHEET_NAME=dashboard_summary`
+- `STUCKUP_DASHBOARD_CAPTURE_RANGE=B2:AD43`
+- `STUCKUP_DASHBOARD_ALERT_DATE_FORMAT=%Y-%m-%d`
 
 State persistence:
 - Fingerprint and data hash are stored in Supabase so restarts do not cause unexpected syncs.
@@ -96,6 +106,7 @@ State persistence:
 Notes:
 - Manual `/stuckup sync` is disabled.
 - `/stuckup help` shows auto-sync info.
+- Dashboard alert sends one system-account text + one system-account image when `config!B2` changes to `Updated`.
 
 ## 5. Other Workflows (Scaffolded)
 

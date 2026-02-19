@@ -10,6 +10,7 @@ from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
 from app.time_utils import format_local_timestamp
+from app.utils.table_image import table_values_to_png_base64
 from app.workflows.stuckup.models import StuckupSyncResult
 
 logger = logging.getLogger(__name__)
@@ -237,6 +238,20 @@ class StuckupService:
             values=[[summary_paragraph]],
         )
 
+    def capture_dashboard_range_png_base64(self) -> str:
+        values = self._read_sheet_block_stable(
+            worksheet_name=self._settings.stuckup_dashboard_capture_worksheet_name,
+            cell_range=self._settings.stuckup_dashboard_capture_range,
+            retries=2,
+            wait_seconds=1.0,
+        )
+        if not values:
+            raise ValueError(
+                "dashboard capture range is empty: "
+                f"{self._settings.stuckup_dashboard_capture_worksheet_name}!{self._settings.stuckup_dashboard_capture_range}"
+            )
+        return table_values_to_png_base64(values)
+
     @staticmethod
     def _normalize_headers(headers: list[str]) -> list[str]:
         seen: dict[str, int] = {}
@@ -404,10 +419,22 @@ class StuckupService:
             return None
 
     def _read_dashboard_block_stable(self) -> list[list[str]]:
-        spreadsheet_id = self._settings.stuckup_target_spreadsheet_id
-        worksheet_name = "dashboard_summary"
-        cell_range = "B10:AB43"
+        return self._read_sheet_block_stable(
+            worksheet_name="dashboard_summary",
+            cell_range="B10:AB43",
+            retries=4,
+            wait_seconds=2.0,
+        )
 
+    def _read_sheet_block_stable(
+        self,
+        *,
+        worksheet_name: str,
+        cell_range: str,
+        retries: int,
+        wait_seconds: float,
+    ) -> list[list[str]]:
+        spreadsheet_id = self._settings.stuckup_target_spreadsheet_id
         current = self._google_sheets.read_values(
             spreadsheet_id=spreadsheet_id,
             worksheet_name=worksheet_name,
@@ -417,8 +444,8 @@ class StuckupService:
 
         # Formula-driven dashboards can lag a few seconds after raw table updates.
         # Read a few times and use the stabilized snapshot.
-        for _ in range(4):
-            time.sleep(2)
+        for _ in range(max(0, retries)):
+            time.sleep(max(wait_seconds, 0.0))
             nxt = self._google_sheets.read_values(
                 spreadsheet_id=spreadsheet_id,
                 worksheet_name=worksheet_name,
