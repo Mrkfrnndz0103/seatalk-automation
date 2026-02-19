@@ -65,6 +65,33 @@ class SupabaseSink:
             logger.exception("failed to fetch rows from supabase")
             return SinkResult("supabase", "error", str(exc)), []
 
+    def delete_rows_by_values(
+        self,
+        column: str,
+        values: list[str],
+        *,
+        batch_size: int = 500,
+    ) -> SinkResult:
+        if not self.enabled or not self._client:
+            return SinkResult("supabase", "skipped", "not configured")
+        if batch_size < 1:
+            return SinkResult("supabase", "error", "batch_size must be >= 1")
+
+        unique_values = sorted({str(value).strip() for value in values if str(value).strip()})
+        if not unique_values:
+            return SinkResult("supabase", "ok", "no rows to delete")
+
+        try:
+            deleted = 0
+            for start in range(0, len(unique_values), batch_size):
+                batch = unique_values[start : start + batch_size]
+                self._client.table(self._table).delete().in_(column, batch).execute()
+                deleted += len(batch)
+            return SinkResult("supabase", "ok", f"deleted {deleted} rows")
+        except Exception as exc:
+            logger.exception("failed to delete rows from supabase")
+            return SinkResult("supabase", "error", str(exc))
+
     def get_state(self, key: str) -> tuple[SinkResult, str | None]:
         if not self.enabled or not self._client:
             return SinkResult("supabase_state", "skipped", "not configured"), None

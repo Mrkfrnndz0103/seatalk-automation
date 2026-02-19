@@ -14,27 +14,6 @@ DEFAULT_STUCKUP_EXPORT_COLUMNS = (
     "status_timestamp,ageing_bucket,hub_dest_station_name,next_destination_name,hub_region,cluster_name,"
     "fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator"
 )
-STUCKUP_ALLOWED_EXPORT_COLUMNS = (
-    "journey_type",
-    "spx_station_site",
-    "shipment_id",
-    "status_group",
-    "status_desc",
-    "status_timestamp",
-    "ageing_bucket",
-    "hub_dest_station_name",
-    "next_destination_name",
-    "hub_region",
-    "cluster_name",
-    "fms_last_update_time",
-    "last_run_time",
-    "last_operator",
-    "day",
-    "Ageing bucket_",
-    "operator",
-)
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

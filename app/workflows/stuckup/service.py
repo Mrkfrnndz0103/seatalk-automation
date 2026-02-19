@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from app.config import STUCKUP_ALLOWED_EXPORT_COLUMNS, Settings
+from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
 from app.time_utils import format_local_timestamp
@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class StuckupService:
+    _CLAIMS_RAW_MAX_EXPORT_COLUMNS = 17  # Keep column R+ formula columns intact.
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._google_sheets = GoogleSheetsClient(settings)
@@ -60,11 +62,12 @@ class StuckupService:
         _, previous_hash = self._supabase.get_data_hash()
         is_updated = previous_hash != data_hash
         sync_status = "Updated" if is_updated else "no update"
+        conflict_column = self._settings.supabase_stuckup_conflict_column
 
         if is_updated:
             upsert_result = self._supabase.upsert_rows(
                 rows=source_records,
-                conflict_column=self._settings.supabase_stuckup_conflict_column,
+                conflict_column=conflict_column,
             )
             if upsert_result.status != "ok":
                 return self._error(
@@ -73,8 +76,9 @@ class StuckupService:
                 )
 
         source_to_normalized = {source_headers[i]: normalized_headers[i] for i in range(len(source_headers))}
-        # Enforce a strict export whitelist and order.
-        requested_export_headers = list(STUCKUP_ALLOWED_EXPORT_COLUMNS)
+        requested_export_headers = [v.strip() for v in self._settings.stuckup_export_columns.split(",") if v.strip()]
+        if not requested_export_headers:
+            return self._error("STUCKUP_EXPORT_COLUMNS is empty", source_rows=len(source_records))
 
         selected_source_headers: list[str] = []
         selected_normalized_headers: list[str] = []
@@ -84,14 +88,55 @@ class StuckupService:
                 normalized = self._normalize_header_name(header)
             selected_source_headers.append(header)
             selected_normalized_headers.append(normalized)
+        target_is_claims_raw = self._is_claims_raw_sheet(self._settings.stuckup_target_worksheet_name)
+        if target_is_claims_raw and len(selected_source_headers) > self._CLAIMS_RAW_MAX_EXPORT_COLUMNS:
+            logger.warning(
+                "target worksheet '%s' allows up to %s exported columns; truncating from %s",
+                self._settings.stuckup_target_worksheet_name,
+                self._CLAIMS_RAW_MAX_EXPORT_COLUMNS,
+                len(selected_source_headers),
+            )
+            selected_source_headers = selected_source_headers[: self._CLAIMS_RAW_MAX_EXPORT_COLUMNS]
+            selected_normalized_headers = selected_normalized_headers[: self._CLAIMS_RAW_MAX_EXPORT_COLUMNS]
 
-        fetch_result, supabase_rows = self._supabase.fetch_all_rows(order_by=self._settings.supabase_stuckup_conflict_column)
+        fetch_result, supabase_rows = self._supabase.fetch_all_rows(order_by=conflict_column)
         if fetch_result.status != "ok":
             return self._error(
                 f"supabase fetch failed: {fetch_result.message}",
                 source_rows=len(source_records),
                 upserted_rows=len(source_records) if is_updated else 0,
             )
+
+        source_conflict_values = {
+            str(record.get(conflict_column, "")).strip()
+            for record in source_records
+            if str(record.get(conflict_column, "")).strip()
+        }
+        stale_conflict_values = sorted(
+            {
+                str(row.get(conflict_column, "")).strip()
+                for row in supabase_rows
+                if str(row.get(conflict_column, "")).strip()
+                and str(row.get(conflict_column, "")).strip() not in source_conflict_values
+            }
+        )
+        if stale_conflict_values:
+            delete_result = self._supabase.delete_rows_by_values(conflict_column, stale_conflict_values)
+            if delete_result.status != "ok":
+                return self._error(
+                    f"supabase cleanup failed: {delete_result.message}",
+                    source_rows=len(source_records),
+                    upserted_rows=len(source_records) if is_updated else 0,
+                )
+            # Stale rows were removed, so this run produced an effective update.
+            sync_status = "Updated"
+            fetch_result, supabase_rows = self._supabase.fetch_all_rows(order_by=conflict_column)
+            if fetch_result.status != "ok":
+                return self._error(
+                    f"supabase fetch failed after cleanup: {fetch_result.message}",
+                    source_rows=len(source_records),
+                    upserted_rows=len(source_records) if is_updated else 0,
+                )
 
         export_values: list[list[str]] = [selected_source_headers]
         for row in supabase_rows:
@@ -119,12 +164,11 @@ class StuckupService:
                 values=[["run_time", "status"]] + new_log_rows,
             )
 
-            # 2) Write data table in columns C onward
-            last_export_col = self._column_letter(len(selected_source_headers))
+            # 2) Write data table in columns A onward
             self._google_sheets.clear_range(
                 spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
                 worksheet_name=self._settings.stuckup_target_worksheet_name,
-                cell_range=f"A:{last_export_col}",
+                cell_range="A:Q" if target_is_claims_raw else "A:ZZ",
             )
             required_rows = max(len(export_values), 1)
             required_columns = max(len(export_values[0]) if export_values else 1, 1)
@@ -208,6 +252,10 @@ class StuckupService:
     def _normalize_header_name(header: str) -> str:
         return re.sub(r"[^a-z0-9]+", "_", header.strip().lower()).strip("_")
 
+    @staticmethod
+    def _is_claims_raw_sheet(worksheet_name: str) -> bool:
+        return worksheet_name.strip().lower() == "claims_raw"
+
     def _build_dashboard_summary_from_block(self, values: list[list[str]]) -> list[str]:
         timestamp = format_local_timestamp(self._settings)
         if not values:
@@ -280,11 +328,13 @@ class StuckupService:
             f"a 7-day total of {total_l7d if total_l7d is not None else 'n/a'} and an average of "
             f"{ave_l7d if ave_l7d is not None else 'n/a'}."
         )
-        sentence_2 = f"The highest contributing regions by Total L7D are {top_regions_text}."
-        sentence_3 = f"The most affected clusters and hubs are {top_clusters_text}; key hubs include {top_hubs_text}."
+        sentence_2 = f"Top Contributing Regions by Total L7D are {top_regions_text}."
+        sentence_3 = (
+            f"The most affected clusters and hubs are {top_clusters_text}; TOP hubs include {top_hubs_text}."
+        )
         sentence_4 = (
-            f"Action Taken: Prioritized the dispatch for {lead_cluster} and coordinated immediate follow-up with "
-            f"{lead_hub_text} to reduce ageing backlog before the next validation run."
+            f"Action Taken: Prioritized the dispatch for {lead_cluster} since these hubs is 1-day dispatch only "
+            f"({lead_hub_text}) to reduce ageing backlog before the next validation run."
         )
         return [sentence_1, sentence_2, sentence_3, sentence_4]
 
@@ -333,17 +383,6 @@ class StuckupService:
             return float(cleaned)
         except ValueError:
             return None
-
-    @staticmethod
-    def _column_letter(index: int) -> str:
-        if index < 1:
-            raise ValueError("column index must be >= 1")
-        letters = []
-        value = index
-        while value > 0:
-            value, remainder = divmod(value - 1, 26)
-            letters.append(chr(65 + remainder))
-        return "".join(reversed(letters))
 
     def _read_dashboard_block_stable(self) -> list[list[str]]:
         spreadsheet_id = self._settings.stuckup_target_spreadsheet_id
