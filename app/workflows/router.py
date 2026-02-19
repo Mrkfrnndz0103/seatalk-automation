@@ -2,6 +2,7 @@ from app.config import Settings
 from app.workflows.backlogs.handler import BacklogsWorkflow
 from app.workflows.base import WorkflowContext, WorkflowResult
 from app.workflows.lh_request.handler import LHRequestWorkflow
+from app.workflows.smalltalk.handler import SmallTalkWorkflow
 from app.workflows.shortlanded.handler import ShortlandedWorkflow
 from app.workflows.stuckup.handler import StuckupWorkflow
 
@@ -13,6 +14,7 @@ class WorkflowRouter:
             BacklogsWorkflow(),
             ShortlandedWorkflow(),
             LHRequestWorkflow(),
+            SmallTalkWorkflow(),
         ]
 
     def route(self, context: WorkflowContext) -> WorkflowResult:

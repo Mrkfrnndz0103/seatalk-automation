@@ -101,6 +101,10 @@ Notes:
 - `/shortlanded`
 - `/lh_request`
 
+Plain chat behavior:
+- Non-command messages (for example `hello`) receive a conversational reply.
+- Slash commands are still routed through workflow handlers.
+
 ## 6. UptimeRobot (Render Free Tier)
 
 To reduce cold starts on Render free tier, create an UptimeRobot monitor:
