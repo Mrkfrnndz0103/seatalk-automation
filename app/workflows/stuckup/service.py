@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 class StuckupService:
     _CLAIMS_RAW_MAX_EXPORT_COLUMNS = 17  # Keep column R+ formula columns intact.
+    _DASHBOARD_SUMMARY_CLEAR_RANGE = "C4:AA9"
+    _DASHBOARD_SUMMARY_START_CELL = "C4"
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -226,12 +228,12 @@ class StuckupService:
         self._google_sheets.clear_range(
             spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
             worksheet_name="dashboard_summary",
-            cell_range="B4:AB8",
+            cell_range=self._DASHBOARD_SUMMARY_CLEAR_RANGE,
         )
         self._google_sheets.update_values(
             spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
             worksheet_name="dashboard_summary",
-            start_cell="B4",
+            start_cell=self._DASHBOARD_SUMMARY_START_CELL,
             values=[[summary_paragraph]],
         )
 

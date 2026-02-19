@@ -28,3 +28,66 @@ def test_build_dashboard_summary_from_block_returns_sentences_with_action_taken(
     assert "SOL-IIS (355)" in text
     assert "SOC BCP" in text
     assert "Action Taken:" in text
+
+
+class _FakeSheets:
+    def __init__(self) -> None:
+        self.ensure_calls: list[dict[str, object]] = []
+        self.clear_calls: list[dict[str, object]] = []
+        self.update_calls: list[dict[str, object]] = []
+
+    def ensure_grid_size(
+        self,
+        spreadsheet_id: str,
+        worksheet_name: str,
+        min_rows: int,
+        min_columns: int,
+    ) -> None:
+        self.ensure_calls.append(
+            {
+                "spreadsheet_id": spreadsheet_id,
+                "worksheet_name": worksheet_name,
+                "min_rows": min_rows,
+                "min_columns": min_columns,
+            }
+        )
+
+    def clear_range(self, spreadsheet_id: str, worksheet_name: str, cell_range: str) -> None:
+        self.clear_calls.append(
+            {
+                "spreadsheet_id": spreadsheet_id,
+                "worksheet_name": worksheet_name,
+                "cell_range": cell_range,
+            }
+        )
+
+    def update_values(
+        self,
+        spreadsheet_id: str,
+        worksheet_name: str,
+        start_cell: str,
+        values: list[list[str]],
+    ) -> dict[str, int]:
+        self.update_calls.append(
+            {
+                "spreadsheet_id": spreadsheet_id,
+                "worksheet_name": worksheet_name,
+                "start_cell": start_cell,
+                "values": values,
+            }
+        )
+        return {"updatedRows": len(values)}
+
+
+def test_refresh_dashboard_summary_writes_to_merged_summary_block_top_left() -> None:
+    service = StuckupService(_settings())
+    fake_sheets = _FakeSheets()
+    service._google_sheets = fake_sheets  # type: ignore[assignment]
+    service._read_dashboard_block_stable = lambda: []  # type: ignore[assignment]
+
+    service.refresh_dashboard_summary_only()
+
+    assert fake_sheets.clear_calls
+    assert fake_sheets.update_calls
+    assert fake_sheets.clear_calls[-1]["cell_range"] == "C4:AA9"
+    assert fake_sheets.update_calls[-1]["start_cell"] == "C4"
