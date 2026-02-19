@@ -30,6 +30,29 @@ def test_build_dashboard_summary_from_block_returns_sentences_with_action_taken(
     assert "Action Taken:" in text
 
 
+def test_build_dashboard_summary_from_block_handles_shifted_dashboard_columns() -> None:
+    service = StuckupService(_settings())
+    # Mirrors live dashboard shape where key metrics start at index 2 ("Region").
+    values = [
+        [],
+        ["", "", "Stuck at SOC_Staging"],
+        [],
+        ["", "", "Region", "Ave L7D", "Total L7D", "18-Feb", "17-Feb", "", "", "", "", "", "", "", "", "Top DC/HUBs affected:", "", "", "", "", "%"],
+        ["", "", "RC", "3", "8", "0", "6", "", "", "", "", "", "", "", "", "*", "SOL-IIS", "San Agustin Hub", "", "", "9.75%"],
+        ["", "", "InterSOC", "4", "13", "11", "1", "", "", "", "", "", "", "", "", "", "", "Tangkalan Hub", "", "", "3.87%"],
+        ["", "", "Total", "109", "376", "137", "187", "", "", "", "", "", "", "", "", "", "", "SOC 5", "", "", "2.99%"],
+    ]
+
+    lines = service._build_dashboard_summary_from_block(values)
+    text = " ".join(lines)
+
+    assert "7-day total of 376" in text
+    assert "average of 109" in text
+    assert "RC (8)" in text
+    assert "SOL-IIS" in text
+    assert "Action Taken:" in text
+
+
 class _FakeSheets:
     def __init__(self) -> None:
         self.ensure_calls: list[dict[str, object]] = []

@@ -267,10 +267,27 @@ class StuckupService:
             ]
 
         region_header_idx = -1
+        region_col_idx = -1
         for idx, row in enumerate(values):
-            if self._cell(row, 1).lower() == "region":
-                region_header_idx = idx
+            for col_idx, cell in enumerate(row):
+                if str(cell).strip().lower() == "region":
+                    region_header_idx = idx
+                    region_col_idx = col_idx
+                    break
+            if region_header_idx >= 0:
                 break
+
+        if region_col_idx < 0:
+            region_col_idx = 1
+
+        ave_col_idx = region_col_idx + 1
+        total_col_idx = region_col_idx + 2
+        latest_col_idx = region_col_idx + 3
+        prev_col_idx = region_col_idx + 4
+        cluster_marker_col_idx = region_col_idx + 13
+        cluster_name_col_idx = region_col_idx + 14
+        hub_name_col_idx = region_col_idx + 15
+        pct_col_idx = region_col_idx + 18
 
         region_totals: list[tuple[str, int]] = []
         total_row: list[str] | None = None
@@ -278,22 +295,22 @@ class StuckupService:
 
         if region_header_idx >= 0:
             for row in values[region_header_idx + 1 :]:
-                name = self._cell(row, 1)
+                name = self._cell(row, region_col_idx)
                 if not name:
                     continue
                 if name.lower() == "total":
                     total_row = row
                     break
-                total_l7d = self._to_int(self._cell(row, 3))
+                total_l7d = self._to_int(self._cell(row, total_col_idx))
                 if total_l7d is not None:
                     region_totals.append((name, total_l7d))
 
-        ave_l7d = self._to_int(self._cell(total_row or [], 2))
-        total_l7d = self._to_int(self._cell(total_row or [], 3))
-        latest_label = self._cell(header_row, 4) or "latest day"
-        latest_count = self._to_int(self._cell(total_row or [], 4))
-        prev_label = self._cell(header_row, 5) or "previous day"
-        prev_count = self._to_int(self._cell(total_row or [], 5))
+        ave_l7d = self._to_int(self._cell(total_row or [], ave_col_idx))
+        total_l7d = self._to_int(self._cell(total_row or [], total_col_idx))
+        latest_label = self._cell(header_row, latest_col_idx) or "latest day"
+        latest_count = self._to_int(self._cell(total_row or [], latest_col_idx))
+        prev_label = self._cell(header_row, prev_col_idx) or "previous day"
+        prev_count = self._to_int(self._cell(total_row or [], prev_col_idx))
 
         top_regions = sorted(region_totals, key=lambda item: item[1], reverse=True)[:3]
         top_regions_text = ", ".join(f"{name} ({count})" for name, count in top_regions) if top_regions else "n/a"
@@ -302,14 +319,14 @@ class StuckupService:
         hubs: list[tuple[str, float]] = []
         seen_hubs: set[str] = set()
         for row in values:
-            if self._cell(row, 14) == "*":
-                cluster_name = self._cell(row, 15)
-                cluster_pct = self._to_percent(self._cell(row, 19))
+            if self._cell(row, cluster_marker_col_idx) == "*":
+                cluster_name = self._cell(row, cluster_name_col_idx)
+                cluster_pct = self._to_percent(self._cell(row, pct_col_idx))
                 if cluster_name and cluster_pct is not None:
                     clusters.append((cluster_name, cluster_pct))
 
-            hub_name = self._cell(row, 16)
-            hub_pct = self._to_percent(self._cell(row, 19))
+            hub_name = self._cell(row, hub_name_col_idx)
+            hub_pct = self._to_percent(self._cell(row, pct_col_idx))
             if hub_name and hub_pct is not None and hub_name.lower() != "top dc/hubs affected:":
                 if hub_name not in seen_hubs:
                     hubs.append((hub_name, hub_pct))

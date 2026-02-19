@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 12), 'Render must use Python 3.12.x. Set PYTHON_VERSION=3.12.9 and clear build cache.'" && pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash scripts/start_render.sh
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -16,6 +16,8 @@ services:
         value: 8000
       - key: LOG_LEVEL
         value: INFO
+      - key: USE_DOPPLER_ON_RENDER
+        value: false
       - key: SEATALK_VERIFY_SIGNATURE
         value: true
       - key: STUCKUP_SOURCE_WORKSHEET_NAME

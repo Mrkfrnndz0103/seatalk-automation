@@ -131,3 +131,13 @@ Expected response: HTTP `200` with body `{"status":"alive"}`.
 - Python runtime pin: `.python-version` + `PYTHON_VERSION=3.12.9`
 - Cloudflare + Render guide: `docs/deployment_cloudflare_render.md`
 - Test execution guide: `docs/testing_guide.md`
+
+## 8. External Secrets (Doppler)
+
+Use Doppler to keep a single source of truth for `.env` across machines.
+
+- Setup guide: `docs/secrets_with_doppler.md`
+- Upload local `.env` to Doppler: `.\scripts\secrets_push.ps1`
+- Download `.env` from Doppler: `.\scripts\secrets_pull.ps1`
+- Run app with Doppler-injected env: `.\scripts\run_with_doppler.ps1 -Reload`
+- Render can also run with Doppler by enabling `USE_DOPPLER_ON_RENDER=true` and setting `DOPPLER_TOKEN`, `DOPPLER_PROJECT`, `DOPPLER_CONFIG`.
