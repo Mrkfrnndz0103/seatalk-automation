@@ -34,6 +34,8 @@ Monitoring endpoint:
 
 Configure in SeaTalk Open Platform:
 - Callback URL: `https://<your-domain>/callbacks/seatalk`
+- For signature verification, set `SEATALK_SIGNING_SECRET` (bot app).
+- For system accounts, use either `SEATALK_SYSTEM_SIGNING_SECRET` (single) or `SEATALK_SYSTEM_SIGNING_SECRETS` (comma-separated for multiple).
 
 ## 4. Stuckup Workflow (Auto)
 
@@ -104,6 +106,12 @@ Notes:
 Plain chat behavior:
 - Non-command messages (for example `hello`) receive a conversational reply.
 - Slash commands are still routed through workflow handlers.
+
+Group chat behavior (SeaTalk):
+- On `bot_added_to_group_chat`, the bot sends a welcome message to the group.
+- On `new_mentioned_message_received_from_group_chat`, the bot replies in the group (same thread if provided).
+- On `new_message_received_from_thread`, the bot replies in the same thread.
+- Ensure SeaTalk app permission `Send Message to Group Chat` is enabled.
 
 ## 6. UptimeRobot (Render Free Tier)
 

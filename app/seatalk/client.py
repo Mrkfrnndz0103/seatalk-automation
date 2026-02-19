@@ -86,3 +86,44 @@ class SeaTalkClient:
             raise RuntimeError(f"failed to send message, code={data.get('code')}")
 
         return data
+
+    async def send_group_text_message(
+        self,
+        group_id: str,
+        content: str,
+        *,
+        thread_id: str | None = None,
+    ) -> dict[str, Any]:
+        token = await self.get_token()
+        url = f"{self._settings.seatalk_api_base_url}/messaging/v2/group_chat"
+
+        message: dict[str, Any] = {
+            "tag": "text",
+            "text": {
+                "format": 1,
+                "content": content,
+            },
+        }
+        if thread_id:
+            message["thread_id"] = thread_id
+
+        payload: dict[str, Any] = {
+            "group_id": group_id,
+            "message": message,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        if data.get("code") != 0:
+            logger.error("send_group_message failed with response: %s", data)
+            raise RuntimeError(f"failed to send group message, code={data.get('code')}")
+
+        return data

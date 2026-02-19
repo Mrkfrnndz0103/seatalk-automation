@@ -69,7 +69,11 @@ async def seatalk_callback(request: Request, signature: str | None = Header(defa
     body = await request.body()
 
     if settings.seatalk_verify_signature:
-        if not is_valid_signature(settings.seatalk_signing_secret, body, signature):
+        signing_secrets = settings.seatalk_callback_signing_secrets
+        if signing_secrets:
+            if not any(is_valid_signature(secret, body, signature) for secret in signing_secrets):
+                raise HTTPException(status_code=401, detail="invalid callback signature")
+        elif not is_valid_signature("", body, signature):
             raise HTTPException(status_code=401, detail="invalid callback signature")
 
     try:
@@ -96,15 +100,15 @@ async def seatalk_callback(request: Request, signature: str | None = Header(defa
         return JSONResponse({"code": 0})
 
     if payload.event_type == BOT_ADDED_TO_GROUP_CHAT:
-        _handle_bot_added_to_group_chat(payload)
+        await _handle_bot_added_to_group_chat(payload)
         return JSONResponse({"code": 0})
 
     if payload.event_type == NEW_MENTIONED_MESSAGE_RECEIVED_FROM_GROUP_CHAT:
-        _handle_new_mentioned_message_received_from_group_chat(payload)
+        await _handle_new_mentioned_message_received_from_group_chat(payload)
         return JSONResponse({"code": 0})
 
     if payload.event_type == NEW_MESSAGE_RECEIVED_FROM_THREAD:
-        _handle_new_message_received_from_thread(payload)
+        await _handle_new_message_received_from_thread(payload)
         return JSONResponse({"code": 0})
 
     # Ack unsupported events to avoid retries.
@@ -166,14 +170,28 @@ def _handle_interactive_message_click(payload: CallbackEnvelope) -> None:
     )
 
 
-def _handle_bot_added_to_group_chat(payload: CallbackEnvelope) -> None:
+async def _handle_bot_added_to_group_chat(payload: CallbackEnvelope) -> None:
     event = _normalize_event(payload.event)
+    group_id = _group_id_from_event(event)
     logger.info("bot_added_to_group_chat: event_id=%s payload=%s", payload.event_id, event.model_dump())
+    if not group_id:
+        logger.warning("group_id missing for bot_added_to_group_chat event_id=%s", payload.event_id)
+        return
+
+    await seatalk_client.send_group_text_message(
+        group_id=group_id,
+        content=(
+            "Hi everyone, thanks for adding me. "
+            "I can help with /stuckup, /backlogs, /shortlanded, and /lh_request. "
+            "Mention me in a thread or send a message here."
+        ),
+    )
 
 
-def _handle_new_mentioned_message_received_from_group_chat(payload: CallbackEnvelope) -> None:
+async def _handle_new_mentioned_message_received_from_group_chat(payload: CallbackEnvelope) -> None:
     event = _normalize_event(payload.event)
     message = event.message
+    text_content = _extract_text_content(message)
     logger.info(
         "new_mentioned_message_received_from_group_chat: event_id=%s group_id=%s message_id=%s thread_id=%s",
         payload.event_id,
@@ -181,11 +199,31 @@ def _handle_new_mentioned_message_received_from_group_chat(payload: CallbackEnve
         message.message_id if message else None,
         message.thread_id if message else None,
     )
+    if not message or message.tag != "text" or not text_content:
+        return
+    if not event.group_id:
+        logger.warning("group_id missing in mentioned-group callback event_id=%s", payload.event_id)
+        return
+
+    context = WorkflowContext(
+        employee_code=_actor_employee_code(event),
+        seatalk_id=event.seatalk_id or (message.sender.seatalk_id if message and message.sender else None),
+        thread_id=message.thread_id,
+        text=text_content,
+    )
+    result = workflow_router.route(context)
+    if result.response_text:
+        await seatalk_client.send_group_text_message(
+            group_id=event.group_id,
+            content=result.response_text,
+            thread_id=message.thread_id,
+        )
 
 
-def _handle_new_message_received_from_thread(payload: CallbackEnvelope) -> None:
+async def _handle_new_message_received_from_thread(payload: CallbackEnvelope) -> None:
     event = _normalize_event(payload.event)
     message = event.message
+    text_content = _extract_text_content(message)
     logger.info(
         "new_message_received_from_thread: event_id=%s group_id=%s message_id=%s thread_id=%s",
         payload.event_id,
@@ -193,6 +231,25 @@ def _handle_new_message_received_from_thread(payload: CallbackEnvelope) -> None:
         message.message_id if message else None,
         message.thread_id if message else None,
     )
+    if not message or message.tag != "text" or not text_content:
+        return
+    if not event.group_id:
+        logger.warning("group_id missing in thread-message callback event_id=%s", payload.event_id)
+        return
+
+    context = WorkflowContext(
+        employee_code=_actor_employee_code(event),
+        seatalk_id=event.seatalk_id or (message.sender.seatalk_id if message and message.sender else None),
+        thread_id=message.thread_id,
+        text=text_content,
+    )
+    result = workflow_router.route(context)
+    if result.response_text:
+        await seatalk_client.send_group_text_message(
+            group_id=event.group_id,
+            content=result.response_text,
+            thread_id=message.thread_id,
+        )
 
 
 def _normalize_event(event: CallbackEvent | dict | None) -> CallbackEvent:
@@ -207,3 +264,26 @@ def _extract_text_content(message) -> str:
     if not message or not message.text:
         return ""
     return (message.text.content or message.text.plain_text or "").strip()
+
+
+def _actor_employee_code(event: CallbackEvent) -> str:
+    message = event.message
+    sender = message.sender if message else None
+
+    if event.employee_code:
+        return event.employee_code
+    if sender and sender.employee_code:
+        return sender.employee_code
+    if event.seatalk_id:
+        return f"seatalk_{event.seatalk_id}"
+    if sender and sender.seatalk_id:
+        return f"seatalk_{sender.seatalk_id}"
+    return "unknown_actor"
+
+
+def _group_id_from_event(event: CallbackEvent) -> str:
+    if event.group_id:
+        return event.group_id
+    if event.group and event.group.group_id:
+        return event.group.group_id
+    return ""

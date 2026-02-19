@@ -8,6 +8,18 @@ class IncomingMessageText(BaseModel):
     plain_text: str | None = None
 
 
+class IncomingMessageSender(BaseModel):
+    seatalk_id: str | None = None
+    employee_code: str | None = None
+    email: str | None = None
+    sender_type: int | None = None
+
+
+class IncomingGroup(BaseModel):
+    group_id: str | None = None
+    group_name: str | None = None
+
+
 class IncomingMessage(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -15,6 +27,7 @@ class IncomingMessage(BaseModel):
     thread_id: str | None = None
     tag: str | None = None
     text: IncomingMessageText | None = None
+    sender: IncomingMessageSender | None = None
 
 
 class CallbackEvent(BaseModel):
@@ -25,6 +38,7 @@ class CallbackEvent(BaseModel):
     employee_code: str | None = None
     email: str | None = None
     group_id: str | None = None
+    group: IncomingGroup | None = None
     value: str | None = None
     message_id: str | None = None
     thread_id: str | None = None

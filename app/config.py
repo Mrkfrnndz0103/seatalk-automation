@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     seatalk_app_id: str = Field(alias="SEATALK_APP_ID")
     seatalk_app_secret: str = Field(alias="SEATALK_APP_SECRET")
     seatalk_signing_secret: str = Field(default="", alias="SEATALK_SIGNING_SECRET")
+    seatalk_system_signing_secret: str = Field(default="", alias="SEATALK_SYSTEM_SIGNING_SECRET")
+    seatalk_system_signing_secrets: str = Field(default="", alias="SEATALK_SYSTEM_SIGNING_SECRETS")
     seatalk_verify_signature: bool = Field(default=True, alias="SEATALK_VERIFY_SIGNATURE")
     seatalk_api_base_url: str = Field(default="https://openapi.seatalk.io", alias="SEATALK_API_BASE_URL")
 
@@ -64,6 +66,23 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, alias="APP_PORT")
     app_timezone: str = Field(default="Asia/Manila", alias="APP_TIMEZONE")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    @property
+    def seatalk_callback_signing_secrets(self) -> list[str]:
+        # Supports one bot secret + one legacy system secret + multiple system secrets CSV.
+        candidates = [
+            self.seatalk_signing_secret,
+            self.seatalk_system_signing_secret,
+            *[v.strip() for v in self.seatalk_system_signing_secrets.split(",")],
+        ]
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for secret in candidates:
+            if not secret or secret in seen:
+                continue
+            seen.add(secret)
+            deduped.append(secret)
+        return deduped
 
 
 def configure_logging(level: str) -> None:
