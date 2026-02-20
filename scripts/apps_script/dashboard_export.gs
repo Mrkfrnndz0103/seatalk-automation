@@ -6,6 +6,7 @@ const CFG = {
   dashboardRange: "B2:AD43",
   seatalkWebhookUrl: "https://openapi.seatalk.io/webhook/group/REPLACE_ME",
   atAll: true,
+  maxImageBytes: 5 * 1024 * 1024,
   textTemplate: "Outbound Stuck at SOC_Staging Stuckup Validation Report {date}",
   dateFormat: "yyyy-MM-dd",
   stateKey: "dashboard_alert_last_trigger_value"
@@ -45,11 +46,31 @@ function processDashboardTrigger_() {
 
   const pdfBlob = exportRangeAsPdf_(ss.getId(), CFG.dashboardSheet, CFG.dashboardRange);
   const pngBlob = convertPdfToPngViaDriveThumbnail_(pdfBlob);
+  console.log("dashboard png bytes=%s contentType=%s", pngBlob.getBytes().length, pngBlob.getContentType());
 
   sendSeatalkText_(text, CFG.atAll);
   sendSeatalkImage_(pngBlob);
 
   props.setProperty(CFG.stateKey, current);
+}
+
+function testSendTextAndImageNow_() {
+  // Manual test helper: sends text + image immediately.
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dateText = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), CFG.dateFormat);
+  const text = CFG.textTemplate.replace("{date}", dateText);
+  const pdfBlob = exportRangeAsPdf_(ss.getId(), CFG.dashboardSheet, CFG.dashboardRange);
+  const pngBlob = convertPdfToPngViaDriveThumbnail_(pdfBlob);
+  sendSeatalkText_(text, CFG.atAll);
+  sendSeatalkImage_(pngBlob);
+}
+
+function testSendImageOnlyNow_() {
+  // Manual test helper: sends image immediately.
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pdfBlob = exportRangeAsPdf_(ss.getId(), CFG.dashboardSheet, CFG.dashboardRange);
+  const pngBlob = convertPdfToPngViaDriveThumbnail_(pdfBlob);
+  sendSeatalkImage_(pngBlob);
 }
 
 function exportRangeAsPdf_(spreadsheetId, sheetName, a1Range) {
@@ -130,11 +151,18 @@ function sendSeatalkText_(content, atAll) {
       at_all: !!atAll
     }
   };
-  postSeatalk_(payload);
+  const resp = postSeatalk_(payload);
+  if (!isSeatalkSuccess_(resp)) {
+    throw new Error("SeaTalk text send failed: " + JSON.stringify(resp));
+  }
 }
 
 function sendSeatalkImage_(pngBlob) {
-  const base64 = Utilities.base64Encode(pngBlob.getBytes());
+  const bytes = pngBlob.getBytes();
+  if (bytes.length > CFG.maxImageBytes) {
+    throw new Error("PNG too large: " + bytes.length + " bytes (max " + CFG.maxImageBytes + ")");
+  }
+  const base64 = Utilities.base64Encode(bytes);
   let payload = {
     tag: "image",
     image_base64: {
@@ -143,7 +171,8 @@ function sendSeatalkImage_(pngBlob) {
   };
 
   let resp = postSeatalk_(payload, true);
-  if (resp && resp.code && resp.code !== 0) {
+  if (!isSeatalkSuccess_(resp)) {
+    console.log("image_base64 payload failed, trying fallback. response=%s", JSON.stringify(resp));
     // Fallback shape used by some webhook variants.
     payload = {
       tag: "image",
@@ -151,7 +180,10 @@ function sendSeatalkImage_(pngBlob) {
         content: base64
       }
     };
-    postSeatalk_(payload);
+    resp = postSeatalk_(payload, true);
+  }
+  if (!isSeatalkSuccess_(resp)) {
+    throw new Error("SeaTalk image send failed after fallback: " + JSON.stringify(resp));
   }
 }
 
@@ -165,15 +197,29 @@ function postSeatalk_(payload, muteErrors) {
 
   const code = resp.getResponseCode();
   const text = resp.getContentText();
-  if (code < 200 || code >= 300) {
-    if (!muteErrors) throw new Error("SeaTalk webhook failed: HTTP " + code + " " + text);
-    return null;
-  }
+  let parsed = null;
   try {
-    return JSON.parse(text);
+    parsed = JSON.parse(text);
   } catch (err) {
-    return { raw: text };
+    parsed = { raw: text };
   }
+  const result = {
+    httpCode: code,
+    body: parsed
+  };
+  if (code < 200 || code >= 300) {
+    if (!muteErrors) throw new Error("SeaTalk webhook failed: " + JSON.stringify(result));
+    return result;
+  }
+  return result;
+}
+
+function isSeatalkSuccess_(resp) {
+  if (!resp) return false;
+  if (typeof resp.httpCode !== "number" || resp.httpCode < 200 || resp.httpCode >= 300) return false;
+  const body = resp.body || {};
+  if (typeof body.code === "number") return body.code === 0;
+  return true;
 }
 
 function parseA1Range_(a1) {

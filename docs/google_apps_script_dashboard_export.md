@@ -8,6 +8,7 @@ This flow runs entirely in Google Apps Script:
 4. Send text + image to SeaTalk webhook
 
 Quick copy source file: `scripts/apps_script/dashboard_export.gs`
+Recommended: use the `.gs` file above as the source of truth (it includes error handling + image fallback payload).
 
 ## 1. Apps Script code
 
@@ -232,3 +233,12 @@ function parseA1Cell_(ref) {
 - This is fully Google-native: Sheets + Drive + Apps Script + UrlFetch.
 - PNG uses Drive thumbnail of exported PDF (first page).
 - It sends once per transition to `Updated` and waits for value to change away before sending again.
+
+## 5. If Text Sends But Image Does Not
+
+1. Open `Executions` in Apps Script and inspect logs for:
+   - `dashboard png bytes=...`
+   - `image_base64 payload failed, trying fallback...`
+2. Ensure Drive API advanced service is enabled (required for thumbnail extraction).
+3. Confirm image size is under 5MB (script enforces this).
+4. Run `processDashboardTrigger_()` manually once from editor to verify end-to-end.
