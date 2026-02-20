@@ -9,8 +9,7 @@ from pathlib import Path
 from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
-from app.seatalk.system_account_client import SeaTalkSystemAccountClient
-from app.time_utils import format_local_timestamp, now_local
+from app.time_utils import format_local_timestamp
 from app.workflows.stuckup.service import StuckupService
 
 logger = logging.getLogger(__name__)
@@ -18,22 +17,18 @@ logger = logging.getLogger(__name__)
 
 class StuckupMonitor:
     _SCHEDULED_SYNC_TS_STATE_KEY = "stuckup_last_scheduled_sync_ts"
-    _DASHBOARD_TRIGGER_VALUE_STATE_KEY = "stuckup_dashboard_alert_trigger_value"
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._sheets = GoogleSheetsClient(settings)
         self._supabase = SupabaseSink(settings)
-        self._system_account = SeaTalkSystemAccountClient(settings.stuckup_dashboard_alert_system_webhook_url)
         self._service = StuckupService(settings)
         self._task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
         self._state_path = Path(settings.stuckup_state_path)
         self._state_path.parent.mkdir(parents=True, exist_ok=True)
         self._scheduled_state_path = self._state_path.with_name("scheduled_sync_state.txt")
-        self._dashboard_trigger_state_path = self._state_path.with_name("dashboard_alert_trigger_state.txt")
         self._last_scheduled_sync_ts: float | None = None
-        self._last_dashboard_trigger_value: str | None = None
         self._last_status: dict[str, str | int | None] = {
             "monitor": "idle",
             "last_check_at": None,
@@ -48,10 +43,6 @@ class StuckupMonitor:
             "last_upserted_rows": 0,
             "last_exported_rows": 0,
             "last_exported_columns": 0,
-            "last_dashboard_alert_check_at": None,
-            "last_dashboard_alert_sent_at": None,
-            "last_dashboard_alert_status": None,
-            "last_dashboard_alert_message": None,
         }
 
     def start(self) -> None:
@@ -70,7 +61,6 @@ class StuckupMonitor:
         if self._task and not self._task.done():
             return
         self._last_scheduled_sync_ts = self._load_last_scheduled_sync_ts()
-        self._last_dashboard_trigger_value = self._load_last_dashboard_trigger_value()
         self._stop_event.clear()
         self._task = asyncio.create_task(self._run_loop())
         logger.info("stuckup monitor started")
@@ -92,7 +82,6 @@ class StuckupMonitor:
                 if mode in {"scheduled", "both"}:
                     await self._check_scheduled_sync()
                 await self._refresh_dashboard_summary_only()
-                await self._check_dashboard_alert_trigger_and_notify()
             except Exception:
                 logger.exception("stuckup monitor iteration failed")
 
@@ -262,124 +251,3 @@ class StuckupMonitor:
             self._last_status["last_summary_refresh_at"] = format_local_timestamp(self._settings)
             self._last_status["last_summary_refresh_status"] = "error"
             self._last_status["last_summary_refresh_message"] = str(exc)
-
-    async def _check_dashboard_alert_trigger_and_notify(self) -> None:
-        self._last_status["last_dashboard_alert_check_at"] = format_local_timestamp(self._settings)
-
-        if not self._settings.stuckup_dashboard_alert_enabled:
-            self._last_status["last_dashboard_alert_status"] = "disabled"
-            self._last_status["last_dashboard_alert_message"] = "dashboard alert disabled"
-            return
-
-        if not self._system_account.enabled:
-            self._last_status["last_dashboard_alert_status"] = "skipped"
-            self._last_status["last_dashboard_alert_message"] = "system account webhook URL is not configured"
-            return
-
-        current_value = self._read_dashboard_alert_trigger_cell()
-        trigger_value = self._settings.stuckup_dashboard_alert_trigger_value
-        current_normalized = self._normalize_trigger_value(current_value)
-        trigger_normalized = self._normalize_trigger_value(trigger_value)
-
-        if self._last_dashboard_trigger_value is None:
-            self._last_dashboard_trigger_value = current_value
-            self._save_last_dashboard_trigger_value(current_value)
-            self._last_status["last_dashboard_alert_status"] = "baseline_set"
-            self._last_status["last_dashboard_alert_message"] = (
-                f"baseline captured from "
-                f"{self._settings.stuckup_dashboard_alert_trigger_worksheet_name}!"
-                f"{self._settings.stuckup_dashboard_alert_trigger_cell}={current_value or '<empty>'}"
-            )
-            return
-
-        previous_normalized = self._normalize_trigger_value(self._last_dashboard_trigger_value)
-        if current_normalized != trigger_normalized:
-            if current_value != self._last_dashboard_trigger_value:
-                self._last_dashboard_trigger_value = current_value
-                self._save_last_dashboard_trigger_value(current_value)
-            self._last_status["last_dashboard_alert_status"] = "waiting"
-            self._last_status["last_dashboard_alert_message"] = (
-                f"waiting for trigger value '{trigger_value}' "
-                f"(current: '{current_value or '<empty>'}')"
-            )
-            return
-
-        if previous_normalized == trigger_normalized:
-            self._last_status["last_dashboard_alert_status"] = "already_triggered"
-            self._last_status["last_dashboard_alert_message"] = (
-                "trigger is unchanged; waiting for a non-trigger value before next alert"
-            )
-            return
-
-        alert_text = self._build_dashboard_alert_text()
-        try:
-            image_base64 = self._service.capture_dashboard_range_png_base64()
-            await self._system_account.send_text_message(
-                content=alert_text,
-                at_all=self._settings.stuckup_dashboard_alert_at_all,
-            )
-            await self._system_account.send_image_message(
-                image_base64=image_base64,
-            )
-        except Exception as exc:
-            logger.exception("failed to send dashboard alert via system account")
-            self._last_status["last_dashboard_alert_status"] = "error"
-            self._last_status["last_dashboard_alert_message"] = str(exc)
-            return
-
-        self._last_dashboard_trigger_value = current_value
-        self._save_last_dashboard_trigger_value(current_value)
-        self._last_status["last_dashboard_alert_sent_at"] = format_local_timestamp(self._settings)
-        self._last_status["last_dashboard_alert_status"] = "sent"
-        self._last_status["last_dashboard_alert_message"] = "dashboard alert sent via system account"
-        logger.info(
-            "stuckup dashboard alert sent via system account webhook trigger_cell=%s!%s capture_range=%s!%s",
-            self._settings.stuckup_dashboard_alert_trigger_worksheet_name,
-            self._settings.stuckup_dashboard_alert_trigger_cell,
-            self._settings.stuckup_dashboard_capture_worksheet_name,
-            self._settings.stuckup_dashboard_capture_range,
-        )
-
-    def _read_dashboard_alert_trigger_cell(self) -> str:
-        values = self._sheets.read_values(
-            spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-            worksheet_name=self._settings.stuckup_dashboard_alert_trigger_worksheet_name,
-            cell_range=self._settings.stuckup_dashboard_alert_trigger_cell,
-        )
-        return values[0][0].strip() if values and values[0] else ""
-
-    def _load_last_dashboard_trigger_value(self) -> str | None:
-        result, value = self._supabase.get_state(self._DASHBOARD_TRIGGER_VALUE_STATE_KEY)
-        if result.status == "ok":
-            return value
-        if result.status == "error":
-            logger.warning("fallback to local dashboard trigger state file due to supabase read error: %s", result.message)
-
-        if not self._dashboard_trigger_state_path.exists():
-            return None
-        return self._dashboard_trigger_state_path.read_text(encoding="utf-8")
-
-    def _save_last_dashboard_trigger_value(self, value: str) -> None:
-        result = self._supabase.set_state(self._DASHBOARD_TRIGGER_VALUE_STATE_KEY, value)
-        if result.status == "ok":
-            return
-        if result.status == "error":
-            logger.warning("fallback to local dashboard trigger state file due to supabase write error: %s", result.message)
-        self._dashboard_trigger_state_path.write_text(value, encoding="utf-8")
-
-    @staticmethod
-    def _normalize_trigger_value(value: str | None) -> str:
-        return (value or "").strip().lower()
-
-    def _build_dashboard_alert_text(self) -> str:
-        raw_template = (
-            self._settings.stuckup_dashboard_alert_text_template
-            or "Outbound Stuck at SOC_Staging Stuckup Validation Report {date}"
-        )
-        date_format = self._settings.stuckup_dashboard_alert_date_format or "%Y-%m-%d"
-        try:
-            date_text = now_local(self._settings).strftime(date_format)
-        except Exception:
-            date_text = now_local(self._settings).strftime("%Y-%m-%d")
-
-        return raw_template.replace("{date}", date_text).strip()

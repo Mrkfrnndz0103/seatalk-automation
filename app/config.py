@@ -15,7 +15,7 @@ DEFAULT_STUCKUP_EXPORT_COLUMNS = (
     "fms_last_update_time,last_run_time,last_operator,day,Ageing bucket_,operator"
 )
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     seatalk_app_id: str = Field(alias="SEATALK_APP_ID")
     seatalk_app_secret: str = Field(alias="SEATALK_APP_SECRET")
@@ -61,29 +61,6 @@ class Settings(BaseSettings):
     )
     stuckup_reference_row: int = Field(default=2, alias="STUCKUP_REFERENCE_ROW")
     stuckup_state_path: Path = Field(default=Path("data/stuckup/reference_row_state.txt"), alias="STUCKUP_STATE_PATH")
-    stuckup_dashboard_alert_enabled: bool = Field(default=True, alias="STUCKUP_DASHBOARD_ALERT_ENABLED")
-    stuckup_dashboard_alert_system_webhook_url: str = Field(
-        default="",
-        alias="STUCKUP_DASHBOARD_ALERT_SYSTEM_WEBHOOK_URL",
-    )
-    stuckup_dashboard_alert_trigger_worksheet_name: str = Field(
-        default="config",
-        alias="STUCKUP_DASHBOARD_ALERT_TRIGGER_WORKSHEET_NAME",
-    )
-    stuckup_dashboard_alert_trigger_cell: str = Field(default="B2", alias="STUCKUP_DASHBOARD_ALERT_TRIGGER_CELL")
-    stuckup_dashboard_alert_trigger_value: str = Field(default="Updated", alias="STUCKUP_DASHBOARD_ALERT_TRIGGER_VALUE")
-    stuckup_dashboard_alert_text_template: str = Field(
-        default="Outbound Stuck at SOC_Staging Stuckup Validation Report {date}",
-        alias="STUCKUP_DASHBOARD_ALERT_TEXT_TEMPLATE",
-    )
-    stuckup_dashboard_alert_at_all: bool = Field(default=True, alias="STUCKUP_DASHBOARD_ALERT_AT_ALL")
-    stuckup_dashboard_capture_worksheet_name: str = Field(
-        default="dashboard_summary",
-        alias="STUCKUP_DASHBOARD_CAPTURE_WORKSHEET_NAME",
-    )
-    stuckup_dashboard_capture_range: str = Field(default="B2:AD43", alias="STUCKUP_DASHBOARD_CAPTURE_RANGE")
-    stuckup_dashboard_alert_date_format: str = Field(default="%Y-%m-%d", alias="STUCKUP_DASHBOARD_ALERT_DATE_FORMAT")
-
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
     app_timezone: str = Field(default="Asia/Manila", alias="APP_TIMEZONE")

@@ -74,7 +74,7 @@ Destination sheet layout:
 - Column `A`: `run_time` (latest sync at row 2)
 - Column `B`: `status` (`Updated` or `no update`, latest at row 2)
 - Older sync logs move to row 3 and below
-- Data table is written from column `C` onward (`C1` header row)
+- Data table is written from column `A` onward (`A1` header row) on `STUCKUP_TARGET_WORKSHEET_NAME`
 
 Key settings:
 - `STUCKUP_AUTO_SYNC_ENABLED=true`
@@ -88,16 +88,6 @@ Key settings:
 - `SUPABASE_STUCKUP_STATE_KEY=reference_row_fingerprint`
 - `SUPABASE_STUCKUP_DATA_HASH_KEY=stuckup_data_hash`
 - `STUCKUP_STATE_PATH=data/stuckup/reference_row_state.txt` (fallback only)
-- `STUCKUP_DASHBOARD_ALERT_ENABLED=true`
-- `STUCKUP_DASHBOARD_ALERT_SYSTEM_WEBHOOK_URL=<seatalk_system_account_webhook_url>`
-- `STUCKUP_DASHBOARD_ALERT_TRIGGER_WORKSHEET_NAME=config`
-- `STUCKUP_DASHBOARD_ALERT_TRIGGER_CELL=B2`
-- `STUCKUP_DASHBOARD_ALERT_TRIGGER_VALUE=Updated`
-- `STUCKUP_DASHBOARD_ALERT_TEXT_TEMPLATE=Outbound Stuck at SOC_Staging Stuckup Validation Report {date}`
-- `STUCKUP_DASHBOARD_ALERT_AT_ALL=true`
-- `STUCKUP_DASHBOARD_CAPTURE_WORKSHEET_NAME=dashboard_summary`
-- `STUCKUP_DASHBOARD_CAPTURE_RANGE=B2:AD43`
-- `STUCKUP_DASHBOARD_ALERT_DATE_FORMAT=%Y-%m-%d`
 
 State persistence:
 - Fingerprint and data hash are stored in Supabase so restarts do not cause unexpected syncs.
@@ -106,7 +96,10 @@ State persistence:
 Notes:
 - Manual `/stuckup sync` is disabled.
 - `/stuckup help` shows auto-sync info.
-- Dashboard alert sends one system-account text + one system-account image when `config!B2` changes to `Updated`.
+
+Dashboard export/notification:
+- Dashboard export and send flow is handled in Google Apps Script (not in this Python service).
+- See `docs/google_apps_script_dashboard_export.md` for the script template and trigger setup.
 
 ## 5. Other Workflows (Scaffolded)
 

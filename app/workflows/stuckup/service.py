@@ -10,7 +10,6 @@ from app.config import Settings
 from app.integrations.google_sheets import GoogleSheetsClient
 from app.integrations.supabase_sink import SupabaseSink
 from app.time_utils import format_local_timestamp
-from app.utils.table_image import table_grid_snapshot_to_png_base64, table_values_to_png_base64
 from app.workflows.stuckup.models import StuckupSyncResult
 
 logger = logging.getLogger(__name__)
@@ -237,31 +236,6 @@ class StuckupService:
             start_cell=self._DASHBOARD_SUMMARY_START_CELL,
             values=[[summary_paragraph]],
         )
-
-    def capture_dashboard_range_png_base64(self) -> str:
-        worksheet_name = self._settings.stuckup_dashboard_capture_worksheet_name
-        cell_range = self._settings.stuckup_dashboard_capture_range
-        try:
-            snapshot = self._google_sheets.read_grid_snapshot(
-                spreadsheet_id=self._settings.stuckup_target_spreadsheet_id,
-                worksheet_name=worksheet_name,
-                cell_range=cell_range,
-            )
-            return table_grid_snapshot_to_png_base64(snapshot)
-        except Exception:
-            # Fallback to value-only rendering if grid metadata is unavailable.
-            values = self._read_sheet_block_stable(
-                worksheet_name=worksheet_name,
-                cell_range=cell_range,
-                retries=2,
-                wait_seconds=1.0,
-            )
-            if not values:
-                raise ValueError(
-                    "dashboard capture range is empty: "
-                    f"{worksheet_name}!{cell_range}"
-                )
-            return table_values_to_png_base64(values)
 
     @staticmethod
     def _normalize_headers(headers: list[str]) -> list[str]:
